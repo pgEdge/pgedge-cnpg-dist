@@ -3,7 +3,7 @@ name: Build and Push Multi-Arch CNPG Operator
 on:
   workflow_dispatch:
     inputs:
-      image_repo:
+      image_name:
         description: "Image repository to push to"
         required: false
         default: "pgedge/cloudnative-pg-internal"
@@ -79,7 +79,7 @@ jobs:
           VERSION=${{ github.event.inputs.version }}
           COMMIT=$(git rev-parse HEAD)
           DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          IMAGE=ghcr.io/${{ github.event.inputs.image_repo }}/cloudnative-pg
+          IMAGE=ghcr.io/${{ github.event.inputs.image_name }}
 
           echo "Building CNPG image for ref: $REF"
           echo "Tag: $VERSION"
@@ -97,7 +97,7 @@ jobs:
 
       - name: Verify pushed manifest
         run: |
-          IMAGE=ghcr.io/${{ github.event.inputs.image_repo }}/cloudnative-pg:${{ github.event.inputs.version }}
+          IMAGE=ghcr.io/${{ github.event.inputs.image_name }}:${{ github.event.inputs.version }}
           echo "🔍 Checking multi-arch manifest:"
           docker buildx imagetools inspect $IMAGE
 
