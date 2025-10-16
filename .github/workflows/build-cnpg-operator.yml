@@ -1,0 +1,103 @@
+name: Build and Push Multi-Arch CNPG Operator
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_repo:
+        description: "Image repository to push to"
+        required: false
+        default: "pgedge/cloudnative-pg-internal"
+      ref:
+        description: "CNPG Git tag or branch (e.g. v1.27.0 or main)"
+        required: true
+        default: "v1.27.0"
+      version:
+        description: "Image tag to publish (e.g. 1.27.0)"
+        required: true
+        default: "1.27.0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout CNPG source
+        uses: actions/checkout@v4
+        with:
+          repository: cloudnative-pg/cloudnative-pg
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build manager binaries for amd64 and arm64
+        run: |
+          mkdir -p dist/manager
+          VERSION=$(grep -E 'Version[[:space:]]*=' pkg/versions/versions.go | head -1 | cut -d'"' -f2)
+          COMMIT=$(git rev-parse --short=9 HEAD)
+          DATE=$(date -u +'%Y-%m-%d')
+
+          echo "🔧 Building amd64 binary..."
+          GOOS=linux GOARCH=amd64 go build \
+            -ldflags="-X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.buildVersion=${VERSION} \
+                      -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.buildCommit=${COMMIT} \
+                      -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.buildDate=${DATE}" \
+            -o dist/manager/manager_amd64 ./cmd/manager
+
+          echo "🔧 Building arm64 binary..."
+          GOOS=linux GOARCH=arm64 go build \
+            -ldflags="-X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.buildVersion=${VERSION} \
+                      -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.buildCommit=${COMMIT} \
+                      -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.buildDate=${DATE}" \
+            -o dist/manager/manager_arm64 ./cmd/manager
+
+          ls -lh dist/manager
+
+      - name: Build and push multi-arch image
+        run: |
+          REF=${{ github.event.inputs.ref }}
+          VERSION=${{ github.event.inputs.version }}
+          COMMIT=$(git rev-parse HEAD)
+          DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          IMAGE=ghcr.io/${{ github.event.inputs.image_repo }}/cloudnative-pg
+
+          echo "Building CNPG image for ref: $REF"
+          echo "Tag: $VERSION"
+          echo "Commit: $COMMIT"
+          echo "Date: $DATE"
+
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg VERSION=$REF \
+            --build-arg COMMIT=$COMMIT \
+            --build-arg DATE=$DATE \
+            -t ${IMAGE}:${VERSION} \
+            -t ${IMAGE}:latest \
+            --push .
+
+      - name: Verify pushed manifest
+        run: |
+          IMAGE=ghcr.io/${{ github.event.inputs.image_repo }}/cloudnative-pg:${{ github.event.inputs.version }}
+          echo "🔍 Checking multi-arch manifest:"
+          docker buildx imagetools inspect $IMAGE
+
