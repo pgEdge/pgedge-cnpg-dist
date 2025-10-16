@@ -17,7 +17,7 @@ on:
         default: "1.27.0"
 
 jobs:
-  build:
+  build-cnpg-operator:
     runs-on: ubuntu-latest
 
     permissions:
