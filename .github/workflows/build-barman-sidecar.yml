@@ -22,6 +22,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+
     steps:
       - name: Checkout Barman Cloud source
         uses: actions/checkout@v4
@@ -41,6 +42,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Define image variables
         id: vars
         run: |
@@ -65,7 +67,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: containers/Dockerfile.base
+          file: containers/Dockerfile.barmanbase
           push: true
           tags: |
             ${{ env.BASE_IMAGE }}:${{ env.VERSION }}
