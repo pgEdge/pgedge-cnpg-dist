@@ -1,0 +1,116 @@
+name: Build Barman Cloud Sidecar
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_name:
+        description: "Main image repository (include 'internal' if needed)"
+        required: false
+        default: "pgedge/plugin-barman-cloud-sidecar-internal"
+      ref:
+        description: "Git tag or branch from cloudnative-pg/plugin-barman-cloud"
+        required: true
+        default: "v0.7.0"
+      version:
+        description: "Version tag (e.g., 0.7.0)"
+        required: true
+        default: "0.7.0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Barman Cloud source
+        uses: actions/checkout@v4
+        with:
+          repository: cloudnative-pg/plugin-barman-cloud
+          ref: ${{ inputs.ref }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Define image variables
+        id: vars
+        run: |
+          IMAGE_NAME="${{ inputs.image_name }}"
+          VERSION="${{ inputs.version }}"
+
+          INTERNAL_SUFFIX=""
+          if [[ "${IMAGE_NAME}" == *"internal"* ]]; then
+            INTERNAL_SUFFIX="-internal"
+          fi
+
+          echo "BASE_IMAGE=ghcr.io/pgedge/plugin-barman-cloud-base${INTERNAL_SUFFIX}" >> $GITHUB_ENV
+          echo "PLUGIN_IMAGE=ghcr.io/pgedge/plugin-barman-cloud-plugin${INTERNAL_SUFFIX}" >> $GITHUB_ENV
+          echo "SIDECAR_IMAGE=ghcr.io/${IMAGE_NAME}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "INTERNAL_SUFFIX=${INTERNAL_SUFFIX}" >> $GITHUB_ENV
+
+      - name: Patch Dockerfiles to use pgedge images
+        run: |
+          echo "🩹 Updating Dockerfiles to point to pgEdge images..."
+
+          # Replace all occurrences of upstream cloudnative-pg image references
+          sed -i "s|ghcr.io/cloudnative-pg/plugin-barman-cloud-base:[^ ]*|${BASE_IMAGE}:${VERSION}|g" containers/Dockerfile.plugin containers/Dockerfile.sidecar || true
+          sed -i "s|ghcr.io/cloudnative-pg/plugin-barman-cloud-plugin:[^ ]*|${PLUGIN_IMAGE}:${VERSION}|g" containers/Dockerfile.sidecar || true
+
+          echo "✅ Dockerfiles patched successfully"
+          echo "--- Updated sidecar Dockerfile ---"
+          grep -E "FROM|BASE_IMAGE|PLUGIN_IMAGE" containers/Dockerfile.sidecar || true
+
+      - name: Build and push Base image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/Dockerfile.base
+          push: true
+          tags: |
+            ${{ env.BASE_IMAGE }}:${{ env.VERSION }}
+            ${{ env.BASE_IMAGE }}:latest
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build and push Plugin image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/Dockerfile.plugin
+          push: true
+          tags: |
+            ${{ env.PLUGIN_IMAGE }}:${{ env.VERSION }}
+            ${{ env.PLUGIN_IMAGE }}:latest
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build and push Sidecar image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/Dockerfile.sidecar
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ env.BASE_IMAGE }}:${{ env.VERSION }}
+            PLUGIN_IMAGE=${{ env.PLUGIN_IMAGE }}:${{ env.VERSION }}
+          tags: |
+            ${{ env.SIDECAR_IMAGE }}:${{ env.VERSION }}
+            ${{ env.SIDECAR_IMAGE }}:latest
+          platforms: linux/amd64,linux/arm64
+
+      - name: Verify pushed manifest
+        run: |
+          echo "🔍 Verifying sidecar manifest:"
+          docker buildx imagetools inspect ${{ env.SIDECAR_IMAGE }}:${{ env.VERSION }}
+
