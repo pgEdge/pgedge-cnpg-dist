@@ -70,7 +70,7 @@ jobs:
           file: containers/Dockerfile.barmanbase
           push: true
           tags: |
-            ${{ env.BASE_IMAGE }}:${{ env.VERSION }}
+            ${{ env.BASE_IMAGE }}:v${{ env.VERSION }}
             ${{ env.BASE_IMAGE }}:latest
           platforms: linux/amd64,linux/arm64
 
@@ -81,7 +81,7 @@ jobs:
           file: containers/Dockerfile.plugin
           push: true
           tags: |
-            ${{ env.PLUGIN_IMAGE }}:${{ env.VERSION }}
+            ${{ env.PLUGIN_IMAGE }}:v${{ env.VERSION }}
             ${{ env.PLUGIN_IMAGE }}:latest
           platforms: linux/amd64,linux/arm64
 
@@ -93,9 +93,9 @@ jobs:
           echo "🩹 Updating Dockerfiles to use freshly built pgEdge images..."
 
           # Patch Plugin reference in Sidecar Dockerfile
-          sed -i "s|ghcr.io/cloudnative-pg/plugin-barman-cloud-plugin:[^ ]*|${PLUGIN_IMAGE}:${VERSION}|g" containers/Dockerfile.sidecar || true
+          sed -i "s|ghcr.io/cloudnative-pg/plugin-barman-cloud-plugin:[^ ]*|${PLUGIN_IMAGE}:v${VERSION}|g" containers/Dockerfile.sidecar || true
           # Patch Base reference in Plugin and Sidecar Dockerfiles
-          sed -i "s|ghcr.io/cloudnative-pg/plugin-barman-cloud-base:[^ ]*|${BASE_IMAGE}:${VERSION}|g" containers/Dockerfile.plugin containers/Dockerfile.sidecar || true
+          sed -i "s|ghcr.io/cloudnative-pg/plugin-barman-cloud-base:[^ ]*|${BASE_IMAGE}:v${VERSION}|g" containers/Dockerfile.plugin containers/Dockerfile.sidecar || true
 
           echo "✅ Dockerfiles patched successfully"
           echo "--- Updated sidecar Dockerfile ---"
@@ -111,15 +111,15 @@ jobs:
           file: containers/Dockerfile.sidecar
           push: true
           build-args: |
-            BASE_IMAGE=${{ env.BASE_IMAGE }}:${{ env.VERSION }}
-            PLUGIN_IMAGE=${{ env.PLUGIN_IMAGE }}:${{ env.VERSION }}
+            BASE_IMAGE=${{ env.BASE_IMAGE }}:v${{ env.VERSION }}
+            PLUGIN_IMAGE=${{ env.PLUGIN_IMAGE }}:v${{ env.VERSION }}
           tags: |
-            ${{ env.SIDECAR_IMAGE }}:${{ env.VERSION }}
+            ${{ env.SIDECAR_IMAGE }}:v${{ env.VERSION }}
             ${{ env.SIDECAR_IMAGE }}:latest
           platforms: linux/amd64,linux/arm64
 
       - name: Verify pushed manifest
         run: |
           echo "🔍 Verifying sidecar manifest:"
-          docker buildx imagetools inspect ${{ env.SIDECAR_IMAGE }}:${{ env.VERSION }}
+          docker buildx imagetools inspect ${{ env.SIDECAR_IMAGE }}:v${{ env.VERSION }}
 
