@@ -31,7 +31,7 @@ image:
 
 sidecarImage:
   registry: ghcr.io
-  repository: cloudnative-pg/plugin-barman-cloud-sidecar
+  repository: pgedge/plugin-barman-cloud-sidecar
   # -- Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
