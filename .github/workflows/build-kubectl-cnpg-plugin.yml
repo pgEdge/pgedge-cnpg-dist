@@ -551,5 +551,4 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
           echo "- [View Release](${{ steps.create_release.outputs.url }})" >> $GITHUB_STEP_SUMMARY
-```
 
