@@ -186,63 +186,76 @@ jobs:
             # kubectl-cnpg Plugin ${{ github.event.inputs.is_release == 'true' && 'Release' || 'Test Build' }}
             
             **Version:** ${{ github.event.inputs.release_version }}
+            
             **Build Type:** ${{ github.event.inputs.is_release == 'true' && '🚀 Release Build' || '🧪 Test Build' }}
             
             ## Source Information
+            
             - **Repository:** ${{ github.event.inputs.source_repo }}
             - **Ref:** ${{ github.event.inputs.ref }}
             - **Commit:** ${{ steps.source_info.outputs.commit_sha }}
             
             ## Installation
-
+            
             ### Via Krew (for release builds)
-```bash
-            kubectl krew index add ${{ env.ORGANIZATION }} https://github.com/${{ env.ORGANIZATION }}/${{ vars.KREW_INDEX_REPO_NAME || 'krew-index' }}.git
-            kubectl krew install ${{ env.ORGANIZATION }}/cnpg
-```
-
+            
+            Add the index:
+            
+            `kubectl krew index add ${{ env.ORGANIZATION }} https://github.com/${{ env.ORGANIZATION }}/${{ vars.KREW_INDEX_REPO_NAME || 'krew-index' }}.git`
+            
+            Install the plugin:
+            
+            `kubectl krew install ${{ env.ORGANIZATION }}/cnpg`
+            
             ### Manual Installation
+            
             Download the appropriate binary for your platform and add it to your PATH.
             
             #### Linux AMD64
-```bash
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.release_version }}${{ steps.release_type.outputs.tag_suffix }}/kubectl-cnpg-linux-amd64.tar.gz
-            tar xzf kubectl-cnpg-linux-amd64.tar.gz
-            sudo mv kubectl-cnpg /usr/local/bin/
-            kubectl cnpg version
-```
-
+            
+            `wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.release_version }}${{ steps.release_type.outputs.tag_suffix }}/kubectl-cnpg-linux-amd64.tar.gz`
+            
+            `tar xzf kubectl-cnpg-linux-amd64.tar.gz`
+            
+            `sudo mv kubectl-cnpg /usr/local/bin/`
+            
+            `kubectl cnpg version`
+            
             #### macOS (Intel)
-```bash
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.release_version }}${{ steps.release_type.outputs.tag_suffix }}/kubectl-cnpg-darwin-amd64.tar.gz
-            tar xzf kubectl-cnpg-darwin-amd64.tar.gz
-            sudo mv kubectl-cnpg /usr/local/bin/
-            kubectl cnpg version
-```
-
+            
+            `wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.release_version }}${{ steps.release_type.outputs.tag_suffix }}/kubectl-cnpg-darwin-amd64.tar.gz`
+            
+            `tar xzf kubectl-cnpg-darwin-amd64.tar.gz`
+            
+            `sudo mv kubectl-cnpg /usr/local/bin/`
+            
+            `kubectl cnpg version`
+            
             #### macOS (Apple Silicon)
-```bash
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.release_version }}${{ steps.release_type.outputs.tag_suffix }}/kubectl-cnpg-darwin-arm64.tar.gz
-            tar xzf kubectl-cnpg-darwin-arm64.tar.gz
-            sudo mv kubectl-cnpg /usr/local/bin/
-            kubectl cnpg version
-```
-
+            
+            `wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.release_version }}${{ steps.release_type.outputs.tag_suffix }}/kubectl-cnpg-darwin-arm64.tar.gz`
+            
+            `tar xzf kubectl-cnpg-darwin-arm64.tar.gz`
+            
+            `sudo mv kubectl-cnpg /usr/local/bin/`
+            
+            `kubectl cnpg version`
+            
             #### Windows
-```powershell
-            # Download kubectl-cnpg-windows-amd64.zip
-            # Extract and add to PATH
-```
-
+            
+            Download the `kubectl-cnpg-windows-amd64.zip` file, extract it, and add to your PATH.
+            
             ## Notes
-            ${{ github.event.inputs.is_release == 'true' && '- This is an official release build
-            - PR has been created to update the krew-index
-            - After krew-index PR is merged, users can install via krew' || '- This is a TEST BUILD for validation only
-            - No krew-index PR will be created
-            - Use this for testing before creating an official release' }}
+            
+            ${{ github.event.inputs.is_release == 'true' && '- This is an official release build' || '- This is a TEST BUILD for validation only' }}
+            
+            ${{ github.event.inputs.is_release == 'true' && '- PR has been created to update the krew-index' || '- No krew-index PR will be created' }}
+            
+            ${{ github.event.inputs.is_release == 'true' && '- After krew-index PR is merged, users can install via krew' || '- Use this for testing before creating an official release' }}
             
             ## Checksums
-            See `checksums.txt` for SHA256 checksums of all artifacts.
+            
+            See checksums.txt for SHA256 checksums of all artifacts.
           files: |
             dist/*.tar.gz
             dist/*.zip
