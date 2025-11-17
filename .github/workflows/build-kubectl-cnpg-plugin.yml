@@ -1,0 +1,516 @@
+name: Build kubectl-cnpg Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo:
+        description: 'Source repository (owner/repo)'
+        required: true
+        default: 'cloudnative-pg/cloudnative-pg'
+      ref:
+        description: 'Tag or branch to build (e.g., v1.21.0 or main)'
+        required: true
+        default: 'main'
+      release_version:
+        description: 'Release version for this build (e.g., v1.21.0)'
+        required: true
+      is_release:
+        description: 'Is this a release build? (creates PR to krew-index)'
+        required: true
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
+
+env:
+  PLUGIN_NAME: cnpg
+  ORGANIZATION: ${{ github.repository_owner }}
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.inputs.source_repo }}
+          ref: ${{ github.event.inputs.ref }}
+          path: source
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: source/go.mod
+
+      - name: Display build information
+        run: |
+          echo "================================================"
+          echo "BUILD INFORMATION"
+          echo "================================================"
+          echo "Organization: ${ORGANIZATION}"
+          echo "Source Repository: ${{ github.event.inputs.source_repo }}"
+          echo "Source Ref: ${{ github.event.inputs.ref }}"
+          echo "Release Version: ${{ github.event.inputs.release_version }}"
+          echo "Is Release Build: ${{ github.event.inputs.is_release }}"
+          echo "Krew Index Repo: ${ORGANIZATION}/${{ vars.KREW_INDEX_REPO_NAME || 'krew-index' }}"
+          echo "================================================"
+          cd source
+          echo "Commit SHA: $(git rev-parse HEAD)"
+          echo "Commit Message: $(git log -1 --pretty=%B)"
+          echo "================================================"
+
+      - name: Build binaries for multiple platforms
+        run: |
+          cd source
+          VERSION="${{ github.event.inputs.release_version }}"
+          BUILD_DIR="${GITHUB_WORKSPACE}/dist"
+          mkdir -p "$BUILD_DIR"
+          
+          echo "Building kubectl-cnpg plugin version ${VERSION}"
+          
+          # Detect the plugin path (adjust if needed)
+          PLUGIN_CMD_PATH="./cmd/kubectl-cnpg"
+          if [ ! -d "$PLUGIN_CMD_PATH" ]; then
+            echo "Error: Plugin command path not found at $PLUGIN_CMD_PATH"
+            exit 1
+          fi
+          
+          # Linux AMD64
+          echo "Building linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-linux-amd64" \
+            ${PLUGIN_CMD_PATH}
+          
+          # Linux ARM64
+          echo "Building linux/arm64..."
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-linux-arm64" \
+            ${PLUGIN_CMD_PATH}
+          
+          # macOS AMD64
+          echo "Building darwin/amd64..."
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-darwin-amd64" \
+            ${PLUGIN_CMD_PATH}
+          
+          # macOS ARM64 (Apple Silicon)
+          echo "Building darwin/arm64..."
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-darwin-arm64" \
+            ${PLUGIN_CMD_PATH}
+          
+          # Windows AMD64
+          echo "Building windows/amd64..."
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-windows-amd64.exe" \
+            ${PLUGIN_CMD_PATH}
+          
+          echo "Build completed successfully!"
+          ls -lh "${BUILD_DIR}"
+
+      - name: Create archives
+        run: |
+          cd dist
+          
+          # Create tarballs for Unix systems
+          for file in kubectl-${PLUGIN_NAME}-linux-* kubectl-${PLUGIN_NAME}-darwin-*; do
+            if [ -f "$file" ]; then
+              echo "Creating archive for $file"
+              tar czf "${file}.tar.gz" "$file"
+              rm "$file"
+            fi
+          done
+          
+          # Create zip for Windows
+          for file in kubectl-${PLUGIN_NAME}-windows-*.exe; do
+            if [ -f "$file" ]; then
+              echo "Creating archive for $file"
+              zip "${file%.exe}.zip" "$file"
+              rm "$file"
+            fi
+          done
+          
+          echo "Archives created:"
+          ls -lh
+
+      - name: Generate checksums
+        id: checksums
+        run: |
+          cd dist
+          sha256sum * > checksums.txt
+          echo "Checksums:"
+          cat checksums.txt
+          
+          # Export checksums as outputs for each platform
+          echo "linux_amd64=$(sha256sum kubectl-${PLUGIN_NAME}-linux-amd64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "linux_arm64=$(sha256sum kubectl-${PLUGIN_NAME}-linux-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "darwin_amd64=$(sha256sum kubectl-${PLUGIN_NAME}-darwin-amd64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "darwin_arm64=$(sha256sum kubectl-${PLUGIN_NAME}-darwin-arm64.tar.gz | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "windows_amd64=$(sha256sum kubectl-${PLUGIN_NAME}-windows-amd64.zip | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Get source commit info
+        id: source_info
+        run: |
+          cd source
+          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Determine release type
+        id: release_type
+        run: |
+          if [ "${{ github.event.inputs.is_release }}" == "true" ]; then
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+            echo "draft=false" >> $GITHUB_OUTPUT
+            echo "tag_suffix=" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "draft=false" >> $GITHUB_OUTPUT
+            echo "tag_suffix=-test" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.release_version }}${{ steps.release_type.outputs.tag_suffix }}
+          name: kubectl-cnpg ${{ github.event.inputs.release_version }} ${{ github.event.inputs.is_release == 'true' && '' || '(Test Build)' }}
+          draft: ${{ steps.release_type.outputs.draft }}
+          prerelease: ${{ steps.release_type.outputs.prerelease }}
+          body: |
+            # kubectl-cnpg Plugin ${{ github.event.inputs.is_release == 'true' && 'Release' || 'Test Build' }}
+            
+            **Version:** ${{ github.event.inputs.release_version }}
+            **Build Type:** ${{ github.event.inputs.is_release == 'true' && '🚀 Release Build' || '🧪 Test Build' }}
+            
+            ## Source Information
+            - **Repository:** ${{ github.event.inputs.source_repo }}
+            - **Ref:** ${{ github.event.inputs.ref }}
+            - **Commit:** ${{ steps.source_info.outputs.commit_sha }}
+            
+            ${{ github.event.inputs.is_release == 'true' && format('## Installation
+
+            ### Via Krew (recommended)
+```bash
+            kubectl krew index add {0} https://github.com/{0}/{1}.git
+            kubectl krew install {0}/cnpg
+```
+
+            ### Manual Installation
+            Download the appropriate binary for your platform and add it to your PATH.', env.ORGANIZATION, vars.KREW_INDEX_REPO_NAME || 'krew-index') || '## Note
+            This is a **test build** for validation purposes.
+            No krew-index PR will be created for this build.' }}
+            
+            ### Manual Installation (for testing)
+            Download the appropriate binary for your platform:
+```bash
+            # Example for Linux AMD64
+            wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.release_version }}${{ steps.release_type.outputs.tag_suffix }}/kubectl-cnpg-linux-amd64.tar.gz
+            tar xzf kubectl-cnpg-linux-amd64.tar.gz
+            sudo mv kubectl-cnpg /usr/local/bin/
+            kubectl cnpg version
+```
+            
+            ## Checksums
+            See `checksums.txt` for SHA256 checksums of all artifacts.
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Krew manifest
+        if: github.event.inputs.is_release == 'true'
+        id: generate_manifest
+        run: |
+          VERSION="${{ github.event.inputs.release_version }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+          SOURCE_REPO="${{ github.event.inputs.source_repo }}"
+          SOURCE_REF="${{ github.event.inputs.ref }}"
+          
+          cat > krew-manifest.yaml <<EOF
+          apiVersion: krew.googlecontainertools.github.com/v1alpha2
+          kind: Plugin
+          metadata:
+            name: ${PLUGIN_NAME}
+          spec:
+            version: ${VERSION}
+            homepage: https://github.com/${SOURCE_REPO}
+            shortDescription: CloudNativePG kubectl plugin
+            description: |
+              kubectl plugin for managing CloudNativePG PostgreSQL clusters on Kubernetes.
+              
+              This plugin provides commands to:
+              - Manage PostgreSQL cluster lifecycle
+              - Perform backups and restores
+              - Monitor cluster status
+              - Manage certificates and credentials
+              
+              Source: https://github.com/${SOURCE_REPO}
+              Built from: ${SOURCE_REF}
+              Maintained by: ${ORGANIZATION}
+            caveats: |
+              This plugin requires the CloudNativePG operator to be installed in your cluster.
+              
+              For more information, visit: https://cloudnative-pg.io
+            platforms:
+            - selector:
+                matchLabels:
+                  os: linux
+                  arch: amd64
+              uri: https://github.com/${ORGANIZATION}/${REPO_NAME}/releases/download/${VERSION}/kubectl-${PLUGIN_NAME}-linux-amd64.tar.gz
+              sha256: "${{ steps.checksums.outputs.linux_amd64 }}"
+              bin: kubectl-${PLUGIN_NAME}
+            - selector:
+                matchLabels:
+                  os: linux
+                  arch: arm64
+              uri: https://github.com/${ORGANIZATION}/${REPO_NAME}/releases/download/${VERSION}/kubectl-${PLUGIN_NAME}-linux-arm64.tar.gz
+              sha256: "${{ steps.checksums.outputs.linux_arm64 }}"
+              bin: kubectl-${PLUGIN_NAME}
+            - selector:
+                matchLabels:
+                  os: darwin
+                  arch: amd64
+              uri: https://github.com/${ORGANIZATION}/${REPO_NAME}/releases/download/${VERSION}/kubectl-${PLUGIN_NAME}-darwin-amd64.tar.gz
+              sha256: "${{ steps.checksums.outputs.darwin_amd64 }}"
+              bin: kubectl-${PLUGIN_NAME}
+            - selector:
+                matchLabels:
+                  os: darwin
+                  arch: arm64
+              uri: https://github.com/${ORGANIZATION}/${REPO_NAME}/releases/download/${VERSION}/kubectl-${PLUGIN_NAME}-darwin-arm64.tar.gz
+              sha256: "${{ steps.checksums.outputs.darwin_arm64 }}"
+              bin: kubectl-${PLUGIN_NAME}
+            - selector:
+                matchLabels:
+                  os: windows
+                  arch: amd64
+              uri: https://github.com/${ORGANIZATION}/${REPO_NAME}/releases/download/${VERSION}/kubectl-${PLUGIN_NAME}-windows-amd64.zip
+              sha256: "${{ steps.checksums.outputs.windows_amd64 }}"
+              bin: kubectl-${PLUGIN_NAME}.exe
+          EOF
+          
+          echo "Generated Krew manifest:"
+          cat krew-manifest.yaml
+
+      - name: Upload manifest as artifact
+        if: github.event.inputs.is_release == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: krew-manifest
+          path: krew-manifest.yaml
+          retention-days: 30
+
+      - name: Create PR to Krew Index Repo
+        if: github.event.inputs.is_release == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.KREW_INDEX_PAT }}
+          script: |
+            const fs = require('fs');
+            const version = '${{ github.event.inputs.release_version }}';
+            const pluginName = process.env.PLUGIN_NAME;
+            const organization = process.env.ORGANIZATION;
+            const indexRepoName = '${{ vars.KREW_INDEX_REPO_NAME }}' || 'krew-index';
+            const indexRepo = `${organization}/${indexRepoName}`;
+            const sourceRepo = '${{ github.event.inputs.source_repo }}';
+            const sourceRef = '${{ github.event.inputs.ref }}';
+            const sourceCommit = '${{ steps.source_info.outputs.commit_short }}';
+            
+            console.log(`📦 Creating PR to ${indexRepo} for ${pluginName} ${version}`);
+            
+            const [owner, repo] = indexRepo.split('/');
+            
+            // Read the manifest
+            const manifest = fs.readFileSync('krew-manifest.yaml', 'utf8');
+            
+            // Get the default branch
+            const { data: repoData } = await github.rest.repos.get({
+              owner,
+              repo
+            });
+            const defaultBranch = repoData.default_branch;
+            console.log(`Default branch: ${defaultBranch}`);
+            
+            // Get the SHA of the default branch
+            const { data: refData } = await github.rest.git.getRef({
+              owner,
+              repo,
+              ref: `heads/${defaultBranch}`
+            });
+            const baseSha = refData.object.sha;
+            
+            // Create a new branch
+            const branchName = `update-${pluginName}-${version}`;
+            console.log(`Creating branch: ${branchName}`);
+            
+            // Delete branch if it exists
+            try {
+              await github.rest.git.deleteRef({
+                owner,
+                repo,
+                ref: `heads/${branchName}`
+              });
+              console.log('🗑️  Deleted existing branch');
+            } catch (error) {
+              console.log('✅ Branch does not exist yet');
+            }
+            
+            // Create new branch
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/heads/${branchName}`,
+              sha: baseSha
+            });
+            console.log(`✅ Created branch: ${branchName}`);
+            
+            // Get current file SHA if it exists
+            let currentFileSha;
+            try {
+              const { data: fileData } = await github.rest.repos.getContent({
+                owner,
+                repo,
+                path: `plugins/${pluginName}.yaml`,
+                ref: defaultBranch
+              });
+              currentFileSha = fileData.sha;
+              console.log('📝 Updating existing manifest file');
+            } catch (error) {
+              console.log('📝 Creating new manifest file');
+            }
+            
+            // Create or update the file
+            await github.rest.repos.createOrUpdateFileContents({
+              owner,
+              repo,
+              path: `plugins/${pluginName}.yaml`,
+              message: `Update ${pluginName} plugin to ${version}`,
+              content: Buffer.from(manifest).toString('base64'),
+              branch: branchName,
+              sha: currentFileSha
+            });
+            console.log('✅ Updated manifest file');
+            
+            // Create pull request
+            const { data: pr } = await github.rest.pulls.create({
+              owner,
+              repo,
+              title: `🚀 Update ${pluginName} plugin to ${version}`,
+              head: branchName,
+              base: defaultBranch,
+              body: `
+              ## kubectl-cnpg Plugin Release
+              
+              This PR updates the **${pluginName}** plugin to version **${version}**.
+              
+              ### 📋 Source Information
+              - **Repository:** ${sourceRepo}
+              - **Ref:** ${sourceRef}
+              - **Commit:** ${sourceCommit}
+              
+              ### ✅ Changes
+              - Built from official upstream source
+              - Updated plugin version to ${version}
+              - Updated download URLs and checksums for all platforms
+              - All binaries built and verified
+              
+              ### 🔗 Artifacts
+              - Release: https://github.com/${{ github.repository }}/releases/tag/${version}
+              - Checksums included for verification
+              
+              ### 📦 Installation
+              After merging, users can update with:
+              \`\`\`bash
+              # Add the index if not already added
+              kubectl krew index add ${organization} https://github.com/${indexRepo}.git
+              
+              # Install or upgrade the plugin
+              kubectl krew install ${organization}/${pluginName}
+              # Or if already installed:
+              kubectl krew upgrade ${pluginName}
+              \`\`\`
+              
+              ### 🧪 Testing
+              To test before merging:
+              \`\`\`bash
+              # Download and install manually
+              wget https://github.com/${{ github.repository }}/releases/download/${version}/kubectl-${pluginName}-linux-amd64.tar.gz
+              tar xzf kubectl-${pluginName}-linux-amd64.tar.gz
+              sudo mv kubectl-${pluginName} /usr/local/bin/
+              kubectl ${pluginName} version
+              \`\`\`
+              
+              ---
+              *🤖 This PR was automatically generated by the release workflow.*
+              *Built from: ${sourceRepo}@${sourceRef}*
+              `
+            });
+            
+            console.log(`✅ Created PR #${pr.number}: ${pr.html_url}`);
+            core.summary.addHeading('PR Created Successfully', 2);
+            core.summary.addRaw(`Organization: ${organization}`);
+            core.summary.addBreak();
+            core.summary.addLink(`PR #${pr.number}`, pr.html_url);
+            await core.summary.write();
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.is_release }}" == "true" ]; then
+            echo "✅ **Release Build Completed Successfully**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **Test Build Completed Successfully**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Details" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Organization | ${ORGANIZATION} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Source Repository | ${{ github.event.inputs.source_repo }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Source Ref | ${{ github.event.inputs.ref }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ github.event.inputs.release_version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Type | ${{ github.event.inputs.is_release == 'true' && '🚀 Release' || '🧪 Test' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit SHA | ${{ steps.source_info.outputs.commit_sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.is_release }}" == "true" ]; then
+            echo "### ✅ Actions Taken" >> $GITHUB_STEP_SUMMARY
+            echo "- Built binaries for all platforms" >> $GITHUB_STEP_SUMMARY
+            echo "- Created GitHub release" >> $GITHUB_STEP_SUMMARY
+            echo "- Generated krew manifest" >> $GITHUB_STEP_SUMMARY
+            echo "- Created PR to ${ORGANIZATION}/${{ vars.KREW_INDEX_REPO_NAME || 'krew-index' }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+            echo "1. 📝 Review and merge the PR in krew-index repository" >> $GITHUB_STEP_SUMMARY
+            echo "2. 🎉 Users can install/update via:" >> $GITHUB_STEP_SUMMARY
+            echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "   kubectl krew index add ${ORGANIZATION} https://github.com/${ORGANIZATION}/${{ vars.KREW_INDEX_REPO_NAME || 'krew-index' }}.git" >> $GITHUB_STEP_SUMMARY
+            echo "   kubectl krew install ${ORGANIZATION}/cnpg" >> $GITHUB_STEP_SUMMARY
+            echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ Actions Taken" >> $GITHUB_STEP_SUMMARY
+            echo "- Built binaries for all platforms" >> $GITHUB_STEP_SUMMARY
+            echo "- Created test release (marked as pre-release)" >> $GITHUB_STEP_SUMMARY
+            echo "- ⚠️ **No PR created** (test build only)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+            echo "1. 🧪 Download and test the binaries" >> $GITHUB_STEP_SUMMARY
+            echo "2. ✅ If tests pass, trigger a **release build** to create the krew PR" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [View Release](${{ steps.create_release.outputs.url }})" >> $GITHUB_STEP_SUMMARY
+```
