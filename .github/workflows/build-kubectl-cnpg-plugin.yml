@@ -8,11 +8,11 @@ on:
         required: true
         default: 'cloudnative-pg/cloudnative-pg'
       ref:
-        description: 'Tag or branch to build (e.g., v1.21.0 or main)'
+        description: 'Tag or branch to build (e.g., v1.27.1 or main)'
         required: true
         default: 'main'
       release_version:
-        description: 'Release version for this build (e.g., v1.21.0)'
+        description: 'Release version for this build (e.g., v1.27.1)'
         required: true
       is_release:
         description: 'Is this a release build? (creates PR to krew-index)'
