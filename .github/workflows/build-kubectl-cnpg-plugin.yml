@@ -48,6 +48,7 @@ jobs:
           echo "=== Patching CloudNativePG source for pgEdge ==="
 
           VERSION="${{ github.event.inputs.release_version }}"
+          VERSION="${VERSION#v}"         # Remove v from version string
           PGEDGE_IMAGE="ghcr.io/pgedge/cloudnative-pg:${VERSION}"
           ORIGINAL_IMAGE_PATTERN="ghcr.io/cloudnative-pg/cloudnative-pg"
 
