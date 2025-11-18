@@ -41,6 +41,39 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
           path: source
 
+      - name: Patch source to use pgEdge images
+        run: |
+          cd source
+
+          echo "=== Patching CloudNativePG source for pgEdge ==="
+
+          VERSION="${{ github.event.inputs.release_version }}"
+          PGEDGE_IMAGE="ghcr.io/pgedge/cloudnative-pg:${VERSION}"
+          ORIGINAL_IMAGE_PATTERN="ghcr.io/cloudnative-pg/cloudnative-pg"
+
+          echo "Target image: ${PGEDGE_IMAGE}"
+
+          # Replace image references with version-specific pgEdge image
+          # This regex handles both with and without version tags
+          find . -type f \( -name "*.go" -o -name "*.yaml" -o -name "*.yml" \) -exec sed -i \
+            "s|${ORIGINAL_IMAGE_PATTERN}:[^ \"']*|${PGEDGE_IMAGE}|g; s|${ORIGINAL_IMAGE_PATTERN}\"|${PGEDGE_IMAGE}\"|g; s|${ORIGINAL_IMAGE_PATTERN}'|${PGEDGE_IMAGE}'|g" {} \;
+
+          # Also handle cases without quotes or colons
+          find . -type f \( -name "*.go" -o -name "*.yaml" -o -name "*.yml" \) -exec sed -i \
+            "s|${ORIGINAL_IMAGE_PATTERN}[^:]|${PGEDGE_IMAGE} |g" {} \;
+
+          echo ""
+          echo "=== Verification ==="
+          echo "Looking for pgEdge image references:"
+          grep -r "ghcr.io/pgedge/cloudnative-pg" --include="*.go" . | head -10 || echo "⚠️  No pgEdge references found!"
+
+          echo ""
+          echo "Looking for any remaining official image references:"
+          grep -r "ghcr.io/cloudnative-pg/cloudnative-pg" --include="*.go" . | head -5 || echo "✅ All official references replaced"
+
+          echo ""
+          echo "✅ Source patching completed"
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
