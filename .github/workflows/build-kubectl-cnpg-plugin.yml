@@ -73,33 +73,71 @@ jobs:
 
           echo "Building kubectl-cnpg plugin version ${VERSION}"
 
-          # Use CloudNativePG's own build command if it exists
-          if make --dry-run kubectl-cnpg 2>/dev/null; then
-            echo "Using CloudNativePG's Makefile..."
+          # Get build metadata
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          COMMIT_SHA=$(git rev-parse HEAD)
 
-            # Build using their Makefile for each platform
-            for OS_ARCH in "linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64" "windows/amd64"; do
-              IFS='/' read -r GOOS GOARCH <<< "$OS_ARCH"
-              OUTPUT="${BUILD_DIR}/kubectl-${PLUGIN_NAME}-${GOOS}-${GOARCH}"
-
-              if [ "$GOOS" = "windows" ]; then
-                OUTPUT="${OUTPUT}.exe"
-              fi
-
-              echo "Building ${GOOS}/${GOARCH}..."
-              GOOS=$GOOS GOARCH=$GOARCH VERSION=${VERSION} make kubectl-cnpg
-
-              # Move to dist
-              mv kubectl-cnpg "$OUTPUT" || mv bin/kubectl-cnpg "$OUTPUT" || echo "Binary location unknown"
-            done
-          else
-            echo "Makefile target not found, using manual build..."
-            # Fallback to manual build
-            # ... (your existing build logic)
+          # Detect the plugin path
+          PLUGIN_CMD_PATH="./cmd/kubectl-cnpg"
+          if [ ! -d "$PLUGIN_CMD_PATH" ]; then
+            echo "Error: Plugin command path not found at $PLUGIN_CMD_PATH"
+            echo "Searching for kubectl-cnpg..."
+            find . -type d -name "*kubectl*" -o -name "*cnpg*" | grep cmd
+            exit 1
           fi
-          
-          echo "Build completed!"
+
+          echo "Found plugin at: $PLUGIN_CMD_PATH"
+
+          # Build flags
+          LDFLAGS="-s -w"
+          LDFLAGS="${LDFLAGS} -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.Version=${VERSION}"
+          LDFLAGS="${LDFLAGS} -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.Commit=${COMMIT_SHA}"
+          LDFLAGS="${LDFLAGS} -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.Date=${BUILD_DATE}"
+
+          echo "LDFLAGS: ${LDFLAGS}"
+
+          # Build for each platform
+          echo "Building linux/amd64..."
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
+            -ldflags "${LDFLAGS}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-linux-amd64" \
+            ${PLUGIN_CMD_PATH}
+
+          echo "Building linux/arm64..."
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
+            -ldflags "${LDFLAGS}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-linux-arm64" \
+            ${PLUGIN_CMD_PATH}
+
+          echo "Building darwin/amd64..."
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build \
+            -ldflags "${LDFLAGS}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-darwin-amd64" \
+            ${PLUGIN_CMD_PATH}
+
+          echo "Building darwin/arm64..."
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build \
+            -ldflags "${LDFLAGS}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-darwin-arm64" \
+            ${PLUGIN_CMD_PATH}
+
+          echo "Building windows/amd64..."
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build \
+            -ldflags "${LDFLAGS}" \
+            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-windows-amd64.exe" \
+            ${PLUGIN_CMD_PATH}
+
+          echo "Build completed successfully!"
           ls -lh "${BUILD_DIR}"
+
+          # Verify binaries exist
+          BINARY_COUNT=$(ls -1 "${BUILD_DIR}"/kubectl-${PLUGIN_NAME}-* 2>/dev/null | wc -l)
+          echo "Created $BINARY_COUNT binaries"
+
+          if [ $BINARY_COUNT -eq 0 ]; then
+            echo "ERROR: No binaries were created!"
+            exit 1
+          fi
 
       - name: Create archives
         run: |
