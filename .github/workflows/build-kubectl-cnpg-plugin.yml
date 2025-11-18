@@ -70,99 +70,123 @@ jobs:
           VERSION="${{ github.event.inputs.release_version }}"
           BUILD_DIR="${GITHUB_WORKSPACE}/dist"
           mkdir -p "$BUILD_DIR"
-
+          
           echo "Building kubectl-cnpg plugin version ${VERSION}"
-
+          
           # Get build metadata
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           COMMIT_SHA=$(git rev-parse HEAD)
-
-          # Detect the plugin path
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          
+          echo "Version: ${VERSION}"
+          echo "Commit: ${COMMIT_SHA}"
+          echo "Date: ${BUILD_DATE}"
+          
+          # Plugin path
           PLUGIN_CMD_PATH="./cmd/kubectl-cnpg"
-          if [ ! -d "$PLUGIN_CMD_PATH" ]; then
-            echo "Error: Plugin command path not found at $PLUGIN_CMD_PATH"
-            echo "Searching for kubectl-cnpg..."
-            find . -type d -name "*kubectl*" -o -name "*cnpg*" | grep cmd
-            exit 1
-          fi
-
-          echo "Found plugin at: $PLUGIN_CMD_PATH"
-
-          # Build flags
+          
+          # Check what variables exist in the code
+          echo "Checking version variables..."
+          grep -n "var.*Version\|var.*Commit\|var.*Date" pkg/versions/versions.go || echo "Variables not found in versions.go"
+          
+          # Try multiple variable name patterns
           LDFLAGS="-s -w"
-          LDFLAGS="${LDFLAGS} -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.Version=${VERSION}"
-          LDFLAGS="${LDFLAGS} -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.Commit=${COMMIT_SHA}"
-          LDFLAGS="${LDFLAGS} -X github.com/cloudnative-pg/cloudnative-pg/pkg/versions.Date=${BUILD_DATE}"
-
+          
+          # Pattern 1: Capitalized (most common for CloudNativePG)
+          LDFLAGS="${LDFLAGS} -X 'github.com/cloudnative-pg/cloudnative-pg/pkg/versions.Version=${VERSION}'"
+          LDFLAGS="${LDFLAGS} -X 'github.com/cloudnative-pg/cloudnative-pg/pkg/versions.Commit=${COMMIT_SHA}'"
+          LDFLAGS="${LDFLAGS} -X 'github.com/cloudnative-pg/cloudnative-pg/pkg/versions.Date=${BUILD_DATE}'"
+          
+          # Pattern 2: buildXxx format (backup)
+          LDFLAGS="${LDFLAGS} -X 'github.com/cloudnative-pg/cloudnative-pg/pkg/versions.buildVersion=${VERSION}'"
+          LDFLAGS="${LDFLAGS} -X 'github.com/cloudnative-pg/cloudnative-pg/pkg/versions.buildCommit=${COMMIT_SHA}'"
+          LDFLAGS="${LDFLAGS} -X 'github.com/cloudnative-pg/cloudnative-pg/pkg/versions.buildDate=${BUILD_DATE}'"
+          
           echo "LDFLAGS: ${LDFLAGS}"
-
-          # Build for each platform
+          
+          # Build all platforms
           echo "Building linux/amd64..."
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
             -ldflags "${LDFLAGS}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-linux-amd64" \
+            -o "${BUILD_DIR}/kubectl-cnpg-linux-amd64" \
             ${PLUGIN_CMD_PATH}
-
+          
           echo "Building linux/arm64..."
           GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
             -ldflags "${LDFLAGS}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-linux-arm64" \
+            -o "${BUILD_DIR}/kubectl-cnpg-linux-arm64" \
             ${PLUGIN_CMD_PATH}
-
+          
           echo "Building darwin/amd64..."
           GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build \
             -ldflags "${LDFLAGS}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-darwin-amd64" \
+            -o "${BUILD_DIR}/kubectl-cnpg-darwin-amd64" \
             ${PLUGIN_CMD_PATH}
-
+          
           echo "Building darwin/arm64..."
           GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build \
             -ldflags "${LDFLAGS}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-darwin-arm64" \
+            -o "${BUILD_DIR}/kubectl-cnpg-darwin-arm64" \
             ${PLUGIN_CMD_PATH}
-
+          
           echo "Building windows/amd64..."
           GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build \
             -ldflags "${LDFLAGS}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-windows-amd64.exe" \
+            -o "${BUILD_DIR}/kubectl-cnpg-windows-amd64.exe" \
             ${PLUGIN_CMD_PATH}
-
-          echo "Build completed successfully!"
+          
+          echo "Build completed!"
           ls -lh "${BUILD_DIR}"
-
-          # Verify binaries exist
-          BINARY_COUNT=$(ls -1 "${BUILD_DIR}"/kubectl-${PLUGIN_NAME}-* 2>/dev/null | wc -l)
-          echo "Created $BINARY_COUNT binaries"
-
-          if [ $BINARY_COUNT -eq 0 ]; then
-            echo "ERROR: No binaries were created!"
-            exit 1
-          fi
+          
+          # Test one binary to check version info
+          echo ""
+          echo "Testing version info in linux binary..."
+          strings "${BUILD_DIR}/kubectl-cnpg-linux-amd64" | grep -E "1.27.1|${COMMIT_SHORT}|${BUILD_DATE}" | head -5 || echo "Version strings not found"
 
       - name: Create archives
         run: |
           cd dist
           
-          # Create tarballs for Unix systems
-          for file in kubectl-${PLUGIN_NAME}-linux-* kubectl-${PLUGIN_NAME}-darwin-*; do
-            if [ -f "$file" ]; then
-              echo "Creating archive for $file"
-              tar czf "${file}.tar.gz" "$file"
-              rm "$file"
+          echo "Files before archiving:"
+          ls -la
+          
+          # Create archives with correct internal name
+          for os_arch in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64; do
+            binary="kubectl-cnpg-${os_arch}"
+            if [ -f "$binary" ]; then
+              echo "Creating archive for $binary..."
+              # Create temp dir
+              mkdir -p temp
+              # Copy with correct name
+              cp "$binary" temp/kubectl-cnpg
+              # Create archive from temp dir
+              tar czf "${binary}.tar.gz" -C temp kubectl-cnpg
+              # Clean up
+              rm -rf temp
+              echo "✓ Created ${binary}.tar.gz"
             fi
           done
           
-          # Create zip for Windows
-          for file in kubectl-${PLUGIN_NAME}-windows-*.exe; do
-            if [ -f "$file" ]; then
-              echo "Creating archive for $file"
-              zip "${file%.exe}.zip" "$file"
-              rm "$file"
-            fi
-          done
+          # Windows
+          if [ -f "kubectl-cnpg-windows-amd64.exe" ]; then
+            echo "Creating archive for Windows..."
+            mkdir -p temp
+            cp kubectl-cnpg-windows-amd64.exe temp/kubectl-cnpg.exe
+            (cd temp && zip ../kubectl-cnpg-windows-amd64.zip kubectl-cnpg.exe)
+            rm -rf temp
+            echo "✓ Created kubectl-cnpg-windows-amd64.zip"
+          fi
           
+          echo ""
           echo "Archives created:"
-          ls -lh
+          ls -lh *.tar.gz *.zip
+          
+          echo ""
+          echo "Verifying contents:"
+          for archive in *.tar.gz; do
+            echo "- $archive:"
+            tar -tzf "$archive"
+          done
 
       - name: Generate checksums
         id: checksums
