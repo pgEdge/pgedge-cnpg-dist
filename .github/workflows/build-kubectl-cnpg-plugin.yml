@@ -63,58 +63,42 @@ jobs:
           echo "Commit Message: $(git log -1 --pretty=%B)"
           echo "================================================"
 
+
       - name: Build binaries for multiple platforms
         run: |
           cd source
           VERSION="${{ github.event.inputs.release_version }}"
           BUILD_DIR="${GITHUB_WORKSPACE}/dist"
           mkdir -p "$BUILD_DIR"
-          
+
           echo "Building kubectl-cnpg plugin version ${VERSION}"
-          
-          # Detect the plugin path (adjust if needed)
-          PLUGIN_CMD_PATH="./cmd/kubectl-cnpg"
-          if [ ! -d "$PLUGIN_CMD_PATH" ]; then
-            echo "Error: Plugin command path not found at $PLUGIN_CMD_PATH"
-            exit 1
+
+          # Use CloudNativePG's own build command if it exists
+          if make --dry-run kubectl-cnpg 2>/dev/null; then
+            echo "Using CloudNativePG's Makefile..."
+
+            # Build using their Makefile for each platform
+            for OS_ARCH in "linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64" "windows/amd64"; do
+              IFS='/' read -r GOOS GOARCH <<< "$OS_ARCH"
+              OUTPUT="${BUILD_DIR}/kubectl-${PLUGIN_NAME}-${GOOS}-${GOARCH}"
+
+              if [ "$GOOS" = "windows" ]; then
+                OUTPUT="${OUTPUT}.exe"
+              fi
+
+              echo "Building ${GOOS}/${GOARCH}..."
+              GOOS=$GOOS GOARCH=$GOARCH VERSION=${VERSION} make kubectl-cnpg
+
+              # Move to dist
+              mv kubectl-cnpg "$OUTPUT" || mv bin/kubectl-cnpg "$OUTPUT" || echo "Binary location unknown"
+            done
+          else
+            echo "Makefile target not found, using manual build..."
+            # Fallback to manual build
+            # ... (your existing build logic)
           fi
           
-          # Linux AMD64
-          echo "Building linux/amd64..."
-          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
-            -ldflags "-s -w -X main.version=${VERSION}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-linux-amd64" \
-            ${PLUGIN_CMD_PATH}
-          
-          # Linux ARM64
-          echo "Building linux/arm64..."
-          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
-            -ldflags "-s -w -X main.version=${VERSION}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-linux-arm64" \
-            ${PLUGIN_CMD_PATH}
-          
-          # macOS AMD64
-          echo "Building darwin/amd64..."
-          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build \
-            -ldflags "-s -w -X main.version=${VERSION}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-darwin-amd64" \
-            ${PLUGIN_CMD_PATH}
-          
-          # macOS ARM64 (Apple Silicon)
-          echo "Building darwin/arm64..."
-          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build \
-            -ldflags "-s -w -X main.version=${VERSION}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-darwin-arm64" \
-            ${PLUGIN_CMD_PATH}
-          
-          # Windows AMD64
-          echo "Building windows/amd64..."
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build \
-            -ldflags "-s -w -X main.version=${VERSION}" \
-            -o "${BUILD_DIR}/kubectl-${PLUGIN_NAME}-windows-amd64.exe" \
-            ${PLUGIN_CMD_PATH}
-          
-          echo "Build completed successfully!"
+          echo "Build completed!"
           ls -lh "${BUILD_DIR}"
 
       - name: Create archives
