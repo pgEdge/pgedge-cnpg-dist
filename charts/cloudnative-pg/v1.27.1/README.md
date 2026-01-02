@@ -42,7 +42,7 @@ CloudNativePG Operator Helm Chart
 | fullnameOverride | string | `""` |  |
 | hostNetwork | bool | `false` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"ghcr.io/cloudnative-pg/cloudnative-pg"` |  |
+| image.repository | string | `"ghcr.io/pgedge/cloudnative-pg"` |  |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
 | monitoring.grafanaDashboard.annotations | object | `{}` | Annotations that ConfigMaps can have to get configured in Grafana. |
