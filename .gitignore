@@ -1,0 +1,22 @@
+# Test results and temporary files
+test-results/
+tests/test-results/
+
+# Kind cluster artifacts
+*.kubeconfig
+
+# Temporary CNPG clone directories
+/tmp/cnpg-e2e-*
+
+# Helm charts (generated/downloaded)
+*.tgz
+
+# OS files
+.DS_Store
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

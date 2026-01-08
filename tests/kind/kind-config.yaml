@@ -1,0 +1,14 @@
+# Kind cluster configuration for CNPG E2E testing
+# Based on working configuration with 3 nodes and custom networking
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker
+
+networking:
+  serviceSubnet: "10.21.0.0/16"
+  podSubnet: "10.20.0.0/16"

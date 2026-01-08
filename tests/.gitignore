@@ -1,0 +1,16 @@
+# Test artifacts and temporary files
+
+# Test results
+test-results/
+*.log
+*.json
+*.xml
+
+# Temporary CNPG repository clones
+/tmp/cnpg-e2e-*
+
+# Go test cache
+.go-test-cache/
+
+# Kind kubeconfig
+*.kubeconfig

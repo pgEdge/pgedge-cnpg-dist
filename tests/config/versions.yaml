@@ -1,0 +1,92 @@
+# Version matrix for CNPG E2E testing
+# This file defines which versions to test and on which providers
+
+cnpg_versions:
+  - version: "1.28.0"
+    git_tag: "v1.28.0"
+    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.28.0"
+    postgres_versions: ["16", "17", "18"]
+    providers:
+      kind:
+        kubernetes_versions: ["1.32", "1.33", "1.34"]
+      aks:
+        kubernetes_versions: ["1.30", "1.31", "1.32"]
+      eks:
+        kubernetes_versions: ["1.30", "1.31", "1.32"]
+
+  - version: "1.27.1"
+    git_tag: "v1.27.1"
+    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.27.1"
+    postgres_versions: ["16", "17", "18"]
+    providers:
+      kind:
+        kubernetes_versions: ["1.31", "1.32", "1.33"]
+      aks:
+        kubernetes_versions: ["1.29", "1.30", "1.31"]
+      eks:
+        kubernetes_versions: ["1.29", "1.30", "1.31"]
+
+  - version: "1.27.0"
+    git_tag: "v1.27.0"
+    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.27.0"
+    postgres_versions: ["16", "17", "18"]
+    providers:
+      kind:
+        kubernetes_versions: ["1.31", "1.32", "1.33"]
+      aks:
+        kubernetes_versions: ["1.29", "1.30", "1.31"]
+      eks:
+        kubernetes_versions: ["1.29", "1.30", "1.31"]
+
+# PostgreSQL image configuration
+# Images from: https://github.com/pgedge/postgres-images
+postgres_images:
+  # Image registries
+  # Use POSTGRES_IMAGE_REGISTRY environment variable to switch between public and internal
+  registries:
+    public:
+      name: "pgedge-postgres"
+      base: "ghcr.io/pgedge/pgedge-postgres"
+      description: "Public release images"
+      url: "https://github.com/pgEdge/postgres-images/pkgs/container/pgedge-postgres"
+    internal:
+      name: "pgedge-postgres-internal"
+      base: "ghcr.io/pgedge/pgedge-postgres-internal"
+      description: "Internal pre-release images for testing"
+      url: "https://github.com/pgEdge/postgres-images/pkgs/container/pgedge-postgres-internal"
+
+  # Default registry to use (can override with POSTGRES_IMAGE_REGISTRY=internal)
+  default_registry: "public"
+
+  # Spock version (included in image tags)
+  spock_version: "spock5"
+
+  # Image variants to test
+  variants:
+    - name: "minimal"
+      tag_suffix: "-minimal"
+      description: "Minimal PostgreSQL image with core functionality"
+    - name: "standard"
+      tag_suffix: "-standard"
+      description: "Standard PostgreSQL image with common extensions"
+
+# Test execution defaults
+test_defaults:
+  # Default test features to run (can be overridden via CLI)
+  feature_type: "smoke"
+  # Available feature types: smoke, basic, security, backup-restore, snapshot,
+  # operator, observability, replication, etc.
+
+  # Test depth level (0 = critical only, 4 = all tests)
+  test_depth: 0
+
+  # Parallel execution settings
+  parallel:
+    enabled: true
+    max_workers: 3  # Max number of parallel test runs
+
+  # Storage class configuration (mirrors CNPG defaults)
+  storage:
+    default_class: "csi-hostpath-sc"
+    csi_class: "csi-hostpath-sc"
+    snapshot_class: "csi-hostpath-snapclass"
