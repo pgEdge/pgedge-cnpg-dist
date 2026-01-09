@@ -1,4 +1,4 @@
-package helpers
+package providers
 
 import (
 	"context"
@@ -12,21 +12,20 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/pgedge/cnpg-build/tests/config"
-	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cmd"
 )
 
-// KindCluster represents a Kind cluster configuration and lifecycle
-type KindCluster struct {
+// kindCluster represents a Kind cluster configuration and lifecycle
+type kindCluster struct {
 	Name           string
 	KubeConfigPath string
 	Provider       *cluster.Provider
-	Config         *KindConfig
+	Config         *kindConfig
 }
 
-// KindConfig represents Kind cluster configuration
-type KindConfig struct {
+// kindConfig represents Kind cluster configuration
+type kindConfig struct {
 	Name          string
 	Image         string
 	Nodes         int
@@ -35,16 +34,18 @@ type KindConfig struct {
 	ConfigPath    string
 }
 
-// NewKindCluster creates a new Kind cluster
-func NewKindCluster(t *testing.T, config *KindConfig) *KindCluster {
-	t.Helper()
+// newKindCluster creates a new Kind cluster
+func newKindCluster(t *testing.T, config *kindConfig) *kindCluster {
+	if t != nil {
+		t.Helper()
+	}
 
 	// Create Kind provider
 	provider := cluster.NewProvider(
 		cluster.ProviderWithLogger(cmd.NewLogger()),
 	)
 
-	kc := &KindCluster{
+	kc := &kindCluster{
 		Name:     config.Name,
 		Provider: provider,
 		Config:   config,
@@ -57,7 +58,7 @@ func NewKindCluster(t *testing.T, config *KindConfig) *KindCluster {
 }
 
 // Create provisions a new Kind cluster
-func (kc *KindCluster) Create(t *testing.T) error {
+func (kc *kindCluster) Create(t *testing.T) error {
 	t.Helper()
 
 	t.Logf("Creating Kind cluster: %s", kc.Name)
@@ -116,7 +117,7 @@ func (kc *KindCluster) Create(t *testing.T) error {
 }
 
 // Delete removes the Kind cluster
-func (kc *KindCluster) Delete(t *testing.T) error {
+func (kc *kindCluster) Delete(t *testing.T) error {
 	t.Helper()
 
 	t.Logf("Deleting Kind cluster: %s", kc.Name)
@@ -136,12 +137,12 @@ func (kc *KindCluster) Delete(t *testing.T) error {
 }
 
 // GetKubectlOptions returns kubectl options for this cluster
-func (kc *KindCluster) GetKubectlOptions(namespace string) *k8s.KubectlOptions {
+func (kc *kindCluster) GetKubectlOptions(namespace string) *k8s.KubectlOptions {
 	return k8s.NewKubectlOptions("", kc.KubeConfigPath, namespace)
 }
 
 // waitForClusterReady waits for the cluster to be fully ready
-func (kc *KindCluster) waitForClusterReady(t *testing.T, timeout time.Duration) error {
+func (kc *kindCluster) waitForClusterReady(t *testing.T, timeout time.Duration) error {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -194,7 +195,7 @@ func (kc *KindCluster) waitForClusterReady(t *testing.T, timeout time.Duration) 
 }
 
 // InstallCSIDriver installs the CSI hostpath driver for storage support
-func (kc *KindCluster) InstallCSIDriver(t *testing.T) error {
+func (kc *kindCluster) InstallCSIDriver(t *testing.T) error {
 	t.Helper()
 
 	t.Log("Installing CSI hostpath driver")
@@ -280,7 +281,7 @@ parameters:
 }
 
 // InstallImageValidationPolicy installs the ValidatingAdmissionPolicy to block non-pgEdge images
-func (kc *KindCluster) InstallImageValidationPolicy(t *testing.T) error {
+func (kc *kindCluster) InstallImageValidationPolicy(t *testing.T) error {
 	t.Helper()
 
 	t.Log("Installing image validation policy to block non-pgEdge PostgreSQL images")
@@ -322,42 +323,6 @@ func (kc *KindCluster) InstallImageValidationPolicy(t *testing.T) error {
 	return nil
 }
 
-// CreateKindCluster is a convenience function to create and setup a complete Kind cluster
-func CreateKindCluster(t *testing.T, name string, image string, nodes int) *KindCluster {
-	t.Helper()
-
-	config := &KindConfig{
-		Name:          name,
-		Image:         image,
-		Nodes:         nodes,
-		ServiceSubnet: "10.21.0.0/16",
-		PodSubnet:     "10.20.0.0/16",
-	}
-
-	kc := NewKindCluster(t, config)
-
-	// Create cluster
-	err := kc.Create(t)
-	require.NoError(t, err, "Failed to create Kind cluster")
-
-	// Install CSI driver
-	err = kc.InstallCSIDriver(t)
-	require.NoError(t, err, "Failed to install CSI driver")
-
-	// Install image validation policy to block non-pgEdge images
-	err = kc.InstallImageValidationPolicy(t)
-	require.NoError(t, err, "Failed to install image validation policy")
-
-	// Register cleanup
-	t.Cleanup(func() {
-		if err := kc.Delete(t); err != nil {
-			t.Logf("Warning: failed to cleanup cluster: %v", err)
-		}
-	})
-
-	return kc
-}
-
 // extractK8sVersion extracts the major.minor version from a Kind node image name
 // Examples: "kindest/node:v1.32.0" -> "1.32", "kindest/node:v1.33" -> "1.33"
 func extractK8sVersion(image string) string {
@@ -368,4 +333,85 @@ func extractK8sVersion(image string) string {
 	}
 	// Fallback to a default version if parsing fails
 	return "1.32"
+}
+
+// Kind implements the Provider interface for Kind clusters
+type Kind struct {
+	cluster *kindCluster
+	config  *Config
+}
+
+// NewKind creates a new Kind provider
+func NewKind(config *Config) *Kind {
+	// Determine Kind node image based on K8s version
+	kindImage := fmt.Sprintf("kindest/node:v%s.0", config.KubernetesVersion)
+	if config.KubernetesVersion == "" {
+		kindImage = "kindest/node:v1.32.0" // Default
+	}
+
+	kindConfig := &kindConfig{
+		Name:          config.Name,
+		Image:         kindImage,
+		Nodes:         config.NodeCount,
+		ServiceSubnet: "10.21.0.0/16",
+		PodSubnet:     "10.20.0.0/16",
+	}
+
+	return &Kind{
+		cluster: newKindCluster(nil, kindConfig),
+		config:  config,
+	}
+}
+
+// Name returns the provider name
+func (p *Kind) Name() string {
+	return "kind"
+}
+
+// Create provisions the Kind cluster
+func (p *Kind) Create(t *testing.T) error {
+	t.Helper()
+	return p.cluster.Create(t)
+}
+
+// Delete destroys the Kind cluster
+func (p *Kind) Delete(t *testing.T) error {
+	t.Helper()
+	return p.cluster.Delete(t)
+}
+
+// GetKubeConfigPath returns the path to the kubeconfig file
+func (p *Kind) GetKubeConfigPath() string {
+	return p.cluster.KubeConfigPath
+}
+
+// GetKubectlOptions returns kubectl options for the cluster
+func (p *Kind) GetKubectlOptions(namespace string) *k8s.KubectlOptions {
+	return p.cluster.GetKubectlOptions(namespace)
+}
+
+// InstallCSIDriver installs the CSI hostpath driver for Kind
+func (p *Kind) InstallCSIDriver(t *testing.T) error {
+	t.Helper()
+	return p.cluster.InstallCSIDriver(t)
+}
+
+// InstallImageValidationPolicy installs the pgEdge image validation policy
+func (p *Kind) InstallImageValidationPolicy(t *testing.T) error {
+	t.Helper()
+	return p.cluster.InstallImageValidationPolicy(t)
+}
+
+// IsReady checks if the cluster is ready
+func (p *Kind) IsReady(t *testing.T) bool {
+	t.Helper()
+
+	opts := p.GetKubectlOptions("")
+	_, err := k8s.GetNodesE(t, opts)
+	return err == nil
+}
+
+// GetClusterName returns the cluster name
+func (p *Kind) GetClusterName() string {
+	return p.cluster.Name
 }

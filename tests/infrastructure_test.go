@@ -5,6 +5,7 @@ import (
 
 	"github.com/pgedge/cnpg-build/tests/config"
 	"github.com/pgedge/cnpg-build/tests/helpers"
+	"github.com/pgedge/cnpg-build/tests/providers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,23 +17,23 @@ func TestKindClusterProvisioning(t *testing.T) {
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err, "Failed to load configuration")
 
-	// Create Kind cluster
-	cluster := helpers.CreateKindCluster(t,
-		"cnpg-infra-test",
-		cfg.KindDefaults.Image,
-		cfg.KindDefaults.Nodes,
-	)
+	// Create cluster using provider from environment
+	provider := providers.CreateFromEnv(t, "cnpg-infra-test")
+	providers.Setup(t, provider)
+
+	// Get expected node count from environment or use default
+	expectedNodes := providers.GetNodeCount()
 
 	// Verify cluster is functional
 	t.Run("Verify cluster has correct number of nodes", func(t *testing.T) {
-		opts := cluster.GetKubectlOptions("")
+		opts := provider.GetKubectlOptions("")
 		nodes, err := helpers.GetNodes(t, opts)
 		require.NoError(t, err)
-		require.Len(t, nodes, cfg.KindDefaults.Nodes, "Expected %d nodes", cfg.KindDefaults.Nodes)
+		require.Len(t, nodes, expectedNodes, "Expected %d nodes", expectedNodes)
 	})
 
 	t.Run("Verify CSI storage class exists", func(t *testing.T) {
-		opts := cluster.GetKubectlOptions("")
+		opts := provider.GetKubectlOptions("")
 		storageClasses, err := helpers.GetStorageClasses(t, opts)
 		require.NoError(t, err)
 
@@ -47,7 +48,7 @@ func TestKindClusterProvisioning(t *testing.T) {
 	})
 
 	t.Run("Verify volume snapshot class exists", func(t *testing.T) {
-		opts := cluster.GetKubectlOptions("")
+		opts := provider.GetKubectlOptions("")
 		snapshotClasses, err := helpers.GetVolumeSnapshotClasses(t, opts)
 		require.NoError(t, err)
 
@@ -73,12 +74,9 @@ func TestCNPGOperatorDeployment(t *testing.T) {
 	// Use first CNPG version from config
 	cnpgVersion := cfg.CNPGVersions[0]
 
-	// Create Kind cluster
-	cluster := helpers.CreateKindCluster(t,
-		"cnpg-operator-test",
-		cfg.KindDefaults.Image,
-		cfg.KindDefaults.Nodes,
-	)
+	// Create cluster using provider from environment
+	provider := providers.CreateFromEnv(t, "cnpg-operator-test")
+	providers.Setup(t, provider)
 
 	// Get PostgreSQL image name
 	postgresImage := cfg.GetPostgresImageName(
@@ -89,7 +87,7 @@ func TestCNPGOperatorDeployment(t *testing.T) {
 
 	// Deploy CNPG operator
 	operator := helpers.DeployCNPGOperator(t,
-		cluster.KubeConfigPath,
+		provider.GetKubeConfigPath(),
 		cnpgVersion.Version,
 		"cnpg-system",
 		cnpgVersion.GetOperatorImageName(),
@@ -109,7 +107,7 @@ func TestCNPGOperatorDeployment(t *testing.T) {
 			"poolers.postgresql.cnpg.io",
 		}
 
-		opts := cluster.GetKubectlOptions("")
+		opts := provider.GetKubectlOptions("")
 		for _, crd := range crds {
 			exists, err := helpers.CRDExists(t, opts, crd)
 			require.NoError(t, err)
@@ -135,12 +133,9 @@ func TestMultiVersionCNPG(t *testing.T) {
 		t.Run("CNPG-"+cnpgVersion.Version, func(t *testing.T) {
 			t.Parallel()
 
-			// Create Kind cluster
-			cluster := helpers.CreateKindCluster(t,
-				"cnpg-"+cnpgVersion.Version,
-				cfg.KindDefaults.Image,
-				cfg.KindDefaults.Nodes,
-			)
+			// Create cluster using provider from environment
+			provider := providers.CreateFromEnv(t, "cnpg-"+cnpgVersion.Version)
+			providers.Setup(t, provider)
 
 			// Get PostgreSQL image
 			postgresImage := cfg.GetPostgresImageName(
@@ -151,7 +146,7 @@ func TestMultiVersionCNPG(t *testing.T) {
 
 			// Deploy operator
 			operator := helpers.DeployCNPGOperator(t,
-				cluster.KubeConfigPath,
+				provider.GetKubeConfigPath(),
 				cnpgVersion.Version,
 				"cnpg-system",
 				cnpgVersion.GetOperatorImageName(),

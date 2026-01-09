@@ -10,6 +10,7 @@ import (
 
 	"github.com/pgedge/cnpg-build/tests/config"
 	"github.com/pgedge/cnpg-build/tests/helpers"
+	"github.com/pgedge/cnpg-build/tests/providers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,12 +28,10 @@ func TestCNPGUpstreamE2E(t *testing.T) {
 	cnpgVersion := cfg.CNPGVersions[0]
 	postgresVersion := cnpgVersion.PostgresVersions[len(cnpgVersion.PostgresVersions)-1] // Use latest PG version
 
-	// Create Kind cluster
-	cluster := helpers.CreateKindCluster(t,
-		fmt.Sprintf("cnpg-e2e-%s", strings.ReplaceAll(cnpgVersion.Version, ".", "-")),
-		cfg.KindDefaults.Image,
-		cfg.KindDefaults.Nodes,
-	)
+	// Create cluster using provider from environment
+	clusterName := fmt.Sprintf("cnpg-e2e-%s", strings.ReplaceAll(cnpgVersion.Version, ".", "-"))
+	provider := providers.CreateFromEnv(t, clusterName)
+	providers.Setup(t, provider)
 
 	// Get PostgreSQL image
 	postgresImage := cfg.GetPostgresImageName(
@@ -43,7 +42,7 @@ func TestCNPGUpstreamE2E(t *testing.T) {
 
 	// Deploy CNPG operator
 	operator := helpers.DeployCNPGOperator(t,
-		cluster.KubeConfigPath,
+		provider.GetKubeConfigPath(),
 		cnpgVersion.Version,
 		"cnpg-system",
 		cnpgVersion.GetOperatorImageName(),
@@ -56,7 +55,7 @@ func TestCNPGUpstreamE2E(t *testing.T) {
 	cnpgRepo := cloneCNPGRepo(t, cnpgVersion.GitTag, cnpgVersion.Version, postgresVersion)
 
 	// Run upstream E2E tests
-	testResults := runUpstreamE2ETests(t, cnpgRepo, cluster.KubeConfigPath, postgresImage)
+	testResults := runUpstreamE2ETests(t, cnpgRepo, provider.GetKubeConfigPath(), postgresImage)
 
 	// Log results
 	t.Logf("Test results: %+v", testResults)
@@ -83,12 +82,9 @@ func TestCNPGUpstreamSmoke(t *testing.T) {
 	cnpgVersion := cfg.CNPGVersions[0]
 	postgresVersion := cnpgVersion.PostgresVersions[0]
 
-	// Create Kind cluster
-	cluster := helpers.CreateKindCluster(t,
-		"cnpg-smoke-test",
-		cfg.KindDefaults.Image,
-		cfg.KindDefaults.Nodes,
-	)
+	// Create cluster using provider from environment
+	provider := providers.CreateFromEnv(t, "cnpg-smoke-test")
+	providers.Setup(t, provider)
 
 	// Get PostgreSQL image
 	postgresImage := cfg.GetPostgresImageName(
@@ -99,7 +95,7 @@ func TestCNPGUpstreamSmoke(t *testing.T) {
 
 	// Deploy CNPG operator
 	helpers.DeployCNPGOperator(t,
-		cluster.KubeConfigPath,
+		provider.GetKubeConfigPath(),
 		cnpgVersion.Version,
 		"cnpg-system",
 		cnpgVersion.GetOperatorImageName(),
@@ -110,7 +106,7 @@ func TestCNPGUpstreamSmoke(t *testing.T) {
 	cnpgRepo := cloneCNPGRepo(t, cnpgVersion.GitTag, cnpgVersion.Version, postgresVersion)
 
 	// Run smoke tests only
-	testResults := runUpstreamE2ETests(t, cnpgRepo, cluster.KubeConfigPath, postgresImage, "smoke")
+	testResults := runUpstreamE2ETests(t, cnpgRepo, provider.GetKubeConfigPath(), postgresImage, "smoke")
 
 	// Assert tests passed
 	require.Equal(t, 0, testResults.Failed, "Smoke tests failed")
@@ -136,17 +132,13 @@ func TestCNPGUpstreamMultiVersion(t *testing.T) {
 			t.Run(testName, func(t *testing.T) {
 				t.Parallel()
 
-				// Create Kind cluster
+				// Create cluster using provider from environment
 				clusterName := fmt.Sprintf("cnpg-%s-pg-%s",
 					strings.ReplaceAll(cnpgVersion.Version, ".", ""),
 					pgVersion,
 				)
-
-				cluster := helpers.CreateKindCluster(t,
-					clusterName,
-					cfg.KindDefaults.Image,
-					cfg.KindDefaults.Nodes,
-				)
+				provider := providers.CreateFromEnv(t, clusterName)
+				providers.Setup(t, provider)
 
 				// Get PostgreSQL image
 				postgresImage := cfg.GetPostgresImageName(
@@ -157,7 +149,7 @@ func TestCNPGUpstreamMultiVersion(t *testing.T) {
 
 				// Deploy CNPG operator
 				helpers.DeployCNPGOperator(t,
-					cluster.KubeConfigPath,
+					provider.GetKubeConfigPath(),
 					cnpgVersion.Version,
 					"cnpg-system",
 					cnpgVersion.GetOperatorImageName(),
@@ -168,7 +160,7 @@ func TestCNPGUpstreamMultiVersion(t *testing.T) {
 				cnpgRepo := cloneCNPGRepo(t, cnpgVersion.GitTag, cnpgVersion.Version, pgVersion)
 
 				// Run smoke tests for this combination
-				testResults := runUpstreamE2ETests(t, cnpgRepo, cluster.KubeConfigPath, postgresImage, "smoke")
+				testResults := runUpstreamE2ETests(t, cnpgRepo, provider.GetKubeConfigPath(), postgresImage, "smoke")
 
 				require.Equal(t, 0, testResults.Failed, "Tests failed for %s", testName)
 			})

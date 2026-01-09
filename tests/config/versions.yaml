@@ -95,7 +95,8 @@ kind_defaults:
 # Each K8s version defines its own set of manifests for cluster setup
 # Used for CSI drivers, storage, monitoring, and any other version-specific components
 kubernetes_versions:
-  "1.32":
+
+  "1.34":
     manifests:
       - name: "Volume Snapshot CRDs"
         url: "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.4.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml"
@@ -117,7 +118,7 @@ kubernetes_versions:
         url: "https://raw.githubusercontent.com/kubernetes-csi/csi-driver-host-path/v1.17.0/deploy/kubernetes-1.30/hostpath/csi-hostpath-driverinfo.yaml"
       - name: "CSI Hostpath Plugin"
         url: "https://raw.githubusercontent.com/kubernetes-csi/csi-driver-host-path/v1.17.0/deploy/kubernetes-1.30/hostpath/csi-hostpath-plugin.yaml"
-
+        
   "1.33":
     manifests:
       - name: "Volume Snapshot CRDs"
@@ -141,7 +142,7 @@ kubernetes_versions:
       - name: "CSI Hostpath Plugin"
         url: "https://raw.githubusercontent.com/kubernetes-csi/csi-driver-host-path/v1.17.0/deploy/kubernetes-1.30/hostpath/csi-hostpath-plugin.yaml"
 
-  "1.34":
+  "1.32":
     manifests:
       - name: "Volume Snapshot CRDs"
         url: "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.4.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml"

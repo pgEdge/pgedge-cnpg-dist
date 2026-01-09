@@ -14,6 +14,12 @@ POSTGRES_VERSION ?= $(lastword $(ALL_POSTGRES_VERSIONS))
 POSTGRES_VARIANT ?= standard
 POSTGRES_IMAGE_REGISTRY ?= public
 
+# Provider configuration
+CLUSTER_PROVIDER ?= kind
+KUBERNETES_VERSION ?= 1.32
+NODE_COUNT ?= 3
+CLOUD_REGION ?=
+
 # Test configuration
 TEST_TIMEOUT ?= 30m
 TEST_PARALLEL ?= 4
@@ -69,6 +75,9 @@ help: ## Show this help message
 	@echo "  POSTGRES_VERSION=$(POSTGRES_VERSION)"
 	@echo "  POSTGRES_VARIANT=$(POSTGRES_VARIANT)"
 	@echo "  POSTGRES_IMAGE_REGISTRY=$(POSTGRES_IMAGE_REGISTRY)"
+	@echo "  CLUSTER_PROVIDER=$(CLUSTER_PROVIDER)"
+	@echo "  KUBERNETES_VERSION=$(KUBERNETES_VERSION)"
+	@echo "  NODE_COUNT=$(NODE_COUNT)"
 	@echo "  TEST_TIMEOUT=$(TEST_TIMEOUT)"
 	@echo "  TEST_PARALLEL=$(TEST_PARALLEL)"
 	@echo ""
@@ -91,32 +100,38 @@ check-prereqs: ## Check if required tools are installed
 .PHONY: test-smoke
 test-smoke: check-prereqs ## Run smoke tests (fastest)
 	@echo "$(BLUE)Running smoke tests...$(NC)"
-	cd tests && go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGUpstreamSmoke
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGUpstreamSmoke
 
 .PHONY: test-infra
 test-infra: check-prereqs ## Run infrastructure validation tests
 	@echo "$(BLUE)Running infrastructure tests...$(NC)"
-	cd tests && go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestKindClusterProvisioning
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestKindClusterProvisioning
 
 .PHONY: test-operator
 test-operator: check-prereqs ## Run CNPG operator deployment tests
 	@echo "$(BLUE)Running operator deployment tests...$(NC)"
-	cd tests && go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGOperatorDeployment
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGOperatorDeployment
 
 .PHONY: test-image-validation
 test-image-validation: check-prereqs ## Run image validation policy tests
 	@echo "$(BLUE)Running image validation policy tests...$(NC)"
-	cd tests && go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestImageValidationPolicy
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestImageValidationPolicy
 
 .PHONY: test-comprehensive
 test-comprehensive: check-prereqs ## Run comprehensive upstream E2E tests
 	@echo "$(BLUE)Running comprehensive E2E tests (this may take a while)...$(NC)"
-	cd tests && go test $(TEST_FLAGS) -timeout 3h . -run TestCNPGUpstreamE2E
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+		go test $(TEST_FLAGS) -timeout 3h . -run TestCNPGUpstreamE2E
 
 .PHONY: test-all
 test-all: check-prereqs ## Run all tests in parallel
 	@echo "$(BLUE)Running all tests...$(NC)"
-	cd tests && go test $(TEST_FLAGS) -timeout 4h -parallel $(TEST_PARALLEL) .
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+		go test $(TEST_FLAGS) -timeout 4h -parallel $(TEST_PARALLEL) .
 
 # Version-Specific Targets
 

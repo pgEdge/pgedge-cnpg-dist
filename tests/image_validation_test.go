@@ -6,6 +6,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/pgedge/cnpg-build/tests/config"
 	"github.com/pgedge/cnpg-build/tests/helpers"
+	"github.com/pgedge/cnpg-build/tests/providers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,12 +18,9 @@ func TestImageValidationPolicy(t *testing.T) {
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err, "Failed to load configuration")
 
-	// Create Kind cluster (this will install the policy)
-	cluster := helpers.CreateKindCluster(t,
-		"cnpg-image-validation-test",
-		cfg.KindDefaults.Image,
-		cfg.KindDefaults.Nodes,
-	)
+	// Create cluster using provider from environment (this will install the policy)
+	provider := providers.CreateFromEnv(t, "cnpg-image-validation-test")
+	providers.Setup(t, provider)
 
 	cnpgVersion := cfg.CNPGVersions[0]
 	postgresVersion := cnpgVersion.PostgresVersions[0]
@@ -36,14 +34,14 @@ func TestImageValidationPolicy(t *testing.T) {
 
 	// Deploy CNPG operator
 	helpers.DeployCNPGOperator(t,
-		cluster.KubeConfigPath,
+		provider.GetKubeConfigPath(),
 		cnpgVersion.Version,
 		"cnpg-system",
 		cnpgVersion.GetOperatorImageName(),
 		pgEdgeImage,
 	)
 
-	opts := cluster.GetKubectlOptions("default")
+	opts := provider.GetKubectlOptions("default")
 
 	t.Run("Allow pgEdge public registry image", func(t *testing.T) {
 		// This should succeed - pgEdge public image
