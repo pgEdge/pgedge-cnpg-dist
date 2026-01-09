@@ -11,6 +11,11 @@ tests/test-results/
 # Helm charts (generated/downloaded)
 *.tgz
 
+# Go build artifacts
+*.test
+*.out
+coverage.txt
+
 # OS files
 .DS_Store
 
