@@ -1,0 +1,157 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Single job for image validation test
+  test-image-validation:
+    name: Image Validation Policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Set up Kind
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
+
+      - name: Run image validation test
+        run: make test-image-validation
+        env:
+          CLUSTER_PROVIDER: kind
+          NODE_COUNT: 3
+
+  # Generate test matrix from versions.yaml
+  generate-matrix:
+    name: Generate Test Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Generate matrix from versions.yaml
+        id: set-matrix
+        run: |
+          # Generate matrix JSON from versions.yaml
+          matrix=$(yq eval -o=json '
+            .cnpg_versions[] |
+            {
+              "cnpg_version": .version,
+              "k8s_versions": .providers.kind.kubernetes_versions
+            } |
+            . as $item |
+            $item.k8s_versions[] |
+            {
+              "cnpg_version": $item.cnpg_version,
+              "k8s_version": .,
+              "test_type": ["smoke", "infra"]
+            } |
+            .test_type[] as $test |
+            {
+              "cnpg_version": .cnpg_version,
+              "k8s_version": .k8s_version,
+              "test_type": $test
+            }
+          ' tests/config/versions.yaml | jq -s .)
+
+          echo "matrix={\"include\":$matrix}" >> $GITHUB_OUTPUT
+
+          # Print for debugging
+          echo "Generated matrix:"
+          echo "$matrix" | jq .
+
+  # Matrix job for smoke and infrastructure tests
+  test-matrix:
+    name: ${{ matrix.cnpg_version }} / K8s ${{ matrix.k8s_version }} / ${{ matrix.test_type }}
+    runs-on: ubuntu-latest
+    needs: generate-matrix
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Set up Kind
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
+
+      - name: Run smoke test
+        if: matrix.test_type == 'smoke'
+        run: make test-smoke
+        env:
+          CLUSTER_PROVIDER: kind
+          KUBERNETES_VERSION: ${{ matrix.k8s_version }}
+          NODE_COUNT: 3
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
+
+      - name: Run infrastructure test
+        if: matrix.test_type == 'infra'
+        run: make test-infra
+        env:
+          CLUSTER_PROVIDER: kind
+          KUBERNETES_VERSION: ${{ matrix.k8s_version }}
+          NODE_COUNT: 3
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          kind delete cluster --name cnpg-smoke-test 2>/dev/null || true
+          kind delete cluster --name cnpg-infra-test 2>/dev/null || true
+
+  # Summary job that requires all matrix jobs to pass
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-image-validation, test-matrix]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.test-image-validation.result }}" != "success" ]; then
+            echo "Image validation test failed"
+            exit 1
+          fi
+          if [ "${{ needs.test-matrix.result }}" != "success" ]; then
+            echo "Matrix tests failed"
+            exit 1
+          fi
+          echo "All tests passed!"
