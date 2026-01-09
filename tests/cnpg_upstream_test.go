@@ -24,8 +24,9 @@ func TestCNPGUpstreamE2E(t *testing.T) {
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err, "Failed to load configuration")
 
-	// Use first CNPG version and PostgreSQL version
-	cnpgVersion := cfg.CNPGVersions[0]
+	// Get CNPG version from environment or use default
+	cnpgVersion, err := cfg.GetCNPGVersionFromEnv()
+	require.NoError(t, err, "Failed to get CNPG version")
 	postgresVersion := cnpgVersion.PostgresVersions[len(cnpgVersion.PostgresVersions)-1] // Use latest PG version
 
 	// Create cluster using provider from environment
@@ -79,7 +80,9 @@ func TestCNPGUpstreamSmoke(t *testing.T) {
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err, "Failed to load configuration")
 
-	cnpgVersion := cfg.CNPGVersions[0]
+	// Get CNPG version from environment or use default
+	cnpgVersion, err := cfg.GetCNPGVersionFromEnv()
+	require.NoError(t, err, "Failed to get CNPG version")
 	postgresVersion := cnpgVersion.PostgresVersions[0]
 
 	// Create cluster using provider from environment

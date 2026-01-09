@@ -118,7 +118,7 @@ kubernetes_versions:
         url: "https://raw.githubusercontent.com/kubernetes-csi/csi-driver-host-path/v1.17.0/deploy/kubernetes-1.30/hostpath/csi-hostpath-driverinfo.yaml"
       - name: "CSI Hostpath Plugin"
         url: "https://raw.githubusercontent.com/kubernetes-csi/csi-driver-host-path/v1.17.0/deploy/kubernetes-1.30/hostpath/csi-hostpath-plugin.yaml"
-        
+
   "1.33":
     manifests:
       - name: "Volume Snapshot CRDs"

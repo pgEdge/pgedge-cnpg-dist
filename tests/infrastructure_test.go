@@ -71,8 +71,9 @@ func TestCNPGOperatorDeployment(t *testing.T) {
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err, "Failed to load configuration")
 
-	// Use first CNPG version from config
-	cnpgVersion := cfg.CNPGVersions[0]
+	// Get CNPG version from environment or use default
+	cnpgVersion, err := cfg.GetCNPGVersionFromEnv()
+	require.NoError(t, err, "Failed to get CNPG version")
 
 	// Create cluster using provider from environment
 	provider := providers.CreateFromEnv(t, "cnpg-operator-test")

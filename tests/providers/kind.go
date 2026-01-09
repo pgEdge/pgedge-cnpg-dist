@@ -12,6 +12,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/pgedge/cnpg-build/tests/config"
+	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cmd"
 )
@@ -84,10 +85,32 @@ func (kc *kindCluster) Create(t *testing.T) error {
 	timeBetweenRetries := 10 * time.Second
 
 	_, err = retry.DoWithRetryE(t, "Create Kind cluster", maxRetries, timeBetweenRetries, func() (string, error) {
+		// Build Kind cluster configuration with multiple nodes
+		kindConfig := &v1alpha4.Cluster{
+			Networking: v1alpha4.Networking{
+				ServiceSubnet: kc.Config.ServiceSubnet,
+				PodSubnet:     kc.Config.PodSubnet,
+			},
+		}
+
+		// Add control plane node
+		kindConfig.Nodes = append(kindConfig.Nodes, v1alpha4.Node{
+			Role:  v1alpha4.ControlPlaneRole,
+			Image: kc.Config.Image,
+		})
+
+		// Add worker nodes (NodeCount - 1 since we already have control plane)
+		for i := 1; i < kc.Config.Nodes; i++ {
+			kindConfig.Nodes = append(kindConfig.Nodes, v1alpha4.Node{
+				Role:  v1alpha4.WorkerRole,
+				Image: kc.Config.Image,
+			})
+		}
+
 		// Create cluster with retry logic
 		createErr := kc.Provider.Create(
 			kc.Name,
-			cluster.CreateWithNodeImage(kc.Config.Image),
+			cluster.CreateWithV1Alpha4Config(kindConfig),
 			cluster.CreateWithKubeconfigPath(kc.KubeConfigPath),
 			cluster.CreateWithDisplayUsage(false),
 			cluster.CreateWithDisplaySalutation(false),

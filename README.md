@@ -1,40 +1,22 @@
 # CNPG Build - pgEdge CloudNativePG Distribution
 
-Build, package, and test pgEdge's distribution of CloudNativePG (CNPG) with pgEdge PostgreSQL images.
+Build, package, and test pgEdge's distribution of CloudNativePG (CNPG) with pgEdge Enterprise Postgres images.
 
 ## Overview
 
 This project serves two primary purposes:
 
-### 1. Build & Package pgEdge CNPG Distribution
+### Build & Package pgEdge CNPG Distribution
 - **Operator Customization**: Patch upstream CNPG operator for pgEdge PostgreSQL compatibility
 - **Image Building**: Produce pgEdge distributed CNPG operator images
 - **Chart Management**: Generate and maintain Helm charts for multiple CNPG versions
 - **Release Automation**: Package and publish pgEdge CNPG releases
 
-### 2. End-to-End Testing Infrastructure
+### End-to-End Testing Infrastructure
 - **Go/Terratest Framework**: Automated Kubernetes cluster provisioning (Kind, EKS, AKS, GKE)
 - **Multi-Version Testing**: Test CNPG versions across PostgreSQL versions and variants
 - **Upstream Validation**: Run official CNPG test suite with pgEdge images
-- **Image Validation**: Kubernetes admission control to enforce pgEdge image usage
 
-## Repository Structure
-
-```
-cnpg-build/
-├── charts/                    # Helm charts for each CNPG version
-│   └── cloudnative-pg/
-│       ├── v1.28.0/          # CNPG v1.28.0 chart
-│       ├── v1.27.1/          # CNPG v1.27.1 chart
-│       └── v1.27.0/          # CNPG v1.27.0 chart
-├── tests/                     # Go/Terratest E2E test suite
-│   ├── config/               # Test configuration
-│   ├── helpers/              # Test helper functions
-│   ├── manifests/            # K8s admission policies
-│   └── *.go                  # Test files
-├── scripts/                   # Build and release scripts
-└── Makefile                   # Test execution targets
-```
 
 ## Quick Start
 
@@ -176,7 +158,7 @@ All test clusters automatically enforce pgEdge PostgreSQL image usage via Kubern
 - `postgres:*` (Docker Hub images)
 - Any other PostgreSQL image
 
-This prevents accidental use of non-pgEdge images during testing. See [`tests/manifests/README.md`](tests/manifests/README.md) for details.
+This prevents accidental use of non-pgEdge images during testing. 
 
 ## License
 

@@ -194,3 +194,17 @@ func (c *Config) GetCNPGVersion(version string) (*CNPGVersion, error) {
 func (v *CNPGVersion) GetOperatorImageName() string {
 	return v.OperatorImage
 }
+
+// GetCNPGVersionFromEnv returns the CNPG version from environment or the first one as default
+func (c *Config) GetCNPGVersionFromEnv() (*CNPGVersion, error) {
+	version := os.Getenv("CNPG_VERSION")
+	if version == "" {
+		// Return first version as default
+		if len(c.CNPGVersions) == 0 {
+			return nil, fmt.Errorf("no CNPG versions defined in configuration")
+		}
+		return &c.CNPGVersions[0], nil
+	}
+
+	return c.GetCNPGVersion(version)
+}
