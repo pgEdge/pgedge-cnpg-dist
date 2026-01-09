@@ -56,7 +56,7 @@ jobs:
         id: set-matrix
         run: |
           # Generate matrix JSON from versions.yaml
-          matrix=$(yq eval -o=json '.cnpg_versions[] | {"cnpg_version": .version, "k8s_versions": .providers.kind.kubernetes_versions} | . as $item | $item.k8s_versions[] | {"cnpg_version": $item.cnpg_version, "k8s_version": ., "test_type": ["smoke", "infra"]} | .test_type[] as $test | {"cnpg_version": .cnpg_version, "k8s_version": .k8s_version, "test_type": $test}' tests/config/versions.yaml | jq -s .)
+          matrix=$(yq eval -o=json '.cnpg_versions[] | {"cnpg_version": .version, "k8s_versions": .providers.kind.kubernetes_versions} | . as $item | $item.k8s_versions[] | {"cnpg_version": $item.cnpg_version, "k8s_version": ., "test_type": ["smoke", "infra"]} | .test_type[] as $test | {"cnpg_version": .cnpg_version, "k8s_version": .k8s_version, "test_type": $test}' tests/config/versions.yaml | jq -s -c .)
 
           echo "matrix={\"include\":$matrix}" >> $GITHUB_OUTPUT
 
