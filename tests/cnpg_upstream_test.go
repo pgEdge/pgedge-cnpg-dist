@@ -173,6 +173,7 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 		"--poll-progress-interval=150s", // Update progress every 2.5min
 		"--github-output",               // GitHub-friendly output
 		"--force-newlines",              // Ensure newlines in output
+		"--silence-skips",               // Don't log skipped tests
 		"-v",                            // Verbose
 		"--json-report=report.json",
 		"./...",
