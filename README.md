@@ -46,9 +46,65 @@ make test-smoke
 make test-smoke
 ```
 
-## Building pgEdge CNPG
+## Building Operator & Plugin Images
 
-[TODO: Add build documentation once build scripts are implemented]
+All images and plugins are built via GitHub Actions workflows triggered manually through the Actions UI.
+
+### CNPG Operator Image
+
+Builds and pushes the CloudNativePG operator image to GHCR.
+
+**Workflow:** [build-cnpg-operator.yml](.github/workflows/build-cnpg-operator.yml)
+
+| Input | Description | Default |
+|-------|-------------|---------|
+| `image_name` | Image repository (without `ghcr.io/`) | `pgedge/cloudnative-pg-internal` |
+| `ref` | CNPG Git tag or branch | `v1.27.0` |
+| `version` | Image tag to publish | `1.27.0` |
+
+**Example:** To build CNPG 1.28.0:
+- `ref`: `v1.28.0`
+- `version`: `1.28.0`
+- `image_name`: `pgedge/cloudnative-pg` (public) or `pgedge/cloudnative-pg-internal` (pre-release)
+
+**Output:** `ghcr.io/pgedge/cloudnative-pg:1.28.0` (linux/amd64, linux/arm64)
+
+### kubectl-cnpg Plugin
+
+Builds the kubectl plugin for all platforms and optionally publishes to a Krew index.
+
+**Workflow:** [build-kubectl-cnpg-plugin.yml](.github/workflows/build-kubectl-cnpg-plugin.yml)
+
+| Input | Description | Default |
+|-------|-------------|---------|
+| `source_repo` | Source repository | `cloudnative-pg/cloudnative-pg` |
+| `ref` | Tag or branch to build | `main` |
+| `release_version` | Release version (e.g., `v1.27.1`) | - |
+| `is_release` | Create Krew index PR | `false` |
+
+**Platforms:** linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64
+
+**Output:**
+- GitHub Release with binaries and checksums
+- Krew manifest (if `is_release: true`)
+- PR to krew-index repository (if `is_release: true`)
+
+### Barman Cloud Sidecar
+
+Builds the Barman Cloud backup/restore sidecar images (base, plugin, and sidecar).
+
+**Workflow:** [build-barman-sidecar.yml](.github/workflows/build-barman-sidecar.yml)
+
+| Input | Description | Default |
+|-------|-------------|---------|
+| `image_name` | Sidecar image repository | `pgedge/plugin-barman-cloud-sidecar-internal` |
+| `ref` | Git tag from `cloudnative-pg/plugin-barman-cloud` | `v0.7.0` |
+| `version` | Version tag | `0.7.0` |
+
+**Output (all linux/amd64, linux/arm64):**
+- `ghcr.io/pgedge/plugin-barman-cloud-base:v0.7.0`
+- `ghcr.io/pgedge/plugin-barman-cloud-plugin:v0.7.0`
+- `ghcr.io/pgedge/plugin-barman-cloud-sidecar:v0.7.0`
 
 ## Testing
 
@@ -140,7 +196,3 @@ All test clusters automatically enforce pgEdge PostgreSQL image usage via Kubern
 - Any other PostgreSQL image
 
 This prevents accidental use of non-pgEdge images during testing. 
-
-## License
-
-[Your license here]
