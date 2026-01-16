@@ -253,8 +253,9 @@ func DeployCNPGOperatorFromManifest(t *testing.T, kubeconfigPath, version, names
 
 	t.Logf("Deploying CNPG operator %s from manifest: %s", version, manifestPath)
 
-	// Apply the manifest
-	k8s.KubectlApply(t, kubectlOptions, manifestPath)
+	// Apply the manifest using server-side apply to avoid annotation size limit on large CRDs
+	// The poolers.postgresql.cnpg.io CRD exceeds the 256KB annotation limit with client-side apply
+	k8s.RunKubectl(t, kubectlOptions, "apply", "--server-side", "--force-conflicts", "-f", manifestPath)
 
 	operator := &CNPGOperator{
 		Version:        version,
