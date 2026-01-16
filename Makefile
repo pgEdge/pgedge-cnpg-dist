@@ -22,7 +22,7 @@ CLOUD_REGION ?=
 
 # Test configuration
 TEST_TIMEOUT ?= 30m
-TEST_PARALLEL ?= 4
+TEST_PARALLEL ?= 8
 TEST_FLAGS ?= -v
 
 # Colors for output

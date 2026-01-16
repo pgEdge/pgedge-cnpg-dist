@@ -56,7 +56,7 @@ jobs:
         id: set-matrix
         run: |
           # Generate matrix JSON from versions.yaml
-          matrix=$(yq eval -o=json '.cnpg_versions[] | {"cnpg_version": .version, "k8s_versions": .providers.kind.kubernetes_versions} | . as $item | $item.k8s_versions[] | {"cnpg_version": $item.cnpg_version, "k8s_version": ., "test_type": ["smoke", "infra"]} | .test_type[] as $test | {"cnpg_version": .cnpg_version, "k8s_version": .k8s_version, "test_type": $test}' tests/config/versions.yaml | jq -s -c .)
+          matrix=$(yq eval -o=json '.cnpg_versions[] | {"cnpg_version": .version, "k8s_versions": .providers.kind.kubernetes_versions} | . as $item | $item.k8s_versions[] | {"cnpg_version": $item.cnpg_version, "k8s_version": ., "test_type": ["comprehensive", "infra"]} | .test_type[] as $test | {"cnpg_version": .cnpg_version, "k8s_version": .k8s_version, "test_type": $test}' tests/config/versions.yaml | jq -s -c .)
 
           echo "matrix={\"include\":$matrix}" >> $GITHUB_OUTPUT
 
@@ -64,9 +64,9 @@ jobs:
           echo "Generated matrix:"
           echo "$matrix" | jq .
 
-  # Matrix job for smoke and infrastructure tests
-  test-matrix:
-    name: ${{ matrix.cnpg_version }} / K8s ${{ matrix.k8s_version }} / ${{ matrix.test_type }}
+  # Matrix job for Kind smoke, comprehensive and infrastructure tests
+  kind-test-matrix:
+    name: ${{ matrix.provider }} / ${{ matrix.cnpg_version }} / K8s ${{ matrix.k8s_version }} / ${{ matrix.test_type }}
     runs-on: ubuntu-latest
     needs: generate-matrix
     timeout-minutes: 45
@@ -111,6 +111,15 @@ jobs:
           NODE_COUNT: 3
           CNPG_VERSION: ${{ matrix.cnpg_version }}
 
+      - name: Run comprehensive test
+        if: matrix.test_type == 'comprehensive'
+        run: make test-comprehensive
+        env:
+          CLUSTER_PROVIDER: kind
+          KUBERNETES_VERSION: ${{ matrix.k8s_version }}
+          NODE_COUNT: 3
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
+
       - name: Cleanup
         if: always()
         run: |
@@ -121,7 +130,7 @@ jobs:
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [test-image-validation, test-matrix]
+    needs: [test-image-validation, kind-test-matrix]
     if: always()
     steps:
       - name: Check test results
@@ -130,8 +139,8 @@ jobs:
             echo "Image validation test failed"
             exit 1
           fi
-          if [ "${{ needs.test-matrix.result }}" != "success" ]; then
-            echo "Matrix tests failed"
+          if [ "${{ needs.kind-test-matrix.result }}" != "success" ]; then
+            echo "Kind matrix tests failed"
             exit 1
           fi
           echo "All tests passed!"
