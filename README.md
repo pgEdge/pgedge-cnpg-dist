@@ -155,6 +155,7 @@ make test-comprehensive   # Full E2E suite (~3h)
 - `backup-restore`, `snapshot` - pgEdge images use new Barman Cloud Plugin architecture
 - `postgres-major-upgrade` - requires specific upgrade path setup
 - `plugin` - requires plugin infrastructure not available in test environment
+- `observability` - requires PodMonitor CRD from prometheus-operator
 
 ## Configuration
 

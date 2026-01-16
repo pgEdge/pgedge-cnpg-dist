@@ -170,7 +170,8 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 	// - backup-restore, snapshot: pgEdge images use new Barman Cloud Plugin
 	// - postgres-major-upgrade: requires specific upgrade path setup
 	// - plugin: requires plugin infrastructure not available in test environment
-	excludeFilters := []string{"!backup-restore", "!snapshot", "!postgres-major-upgrade", "!plugin"}
+	// - observability: requires PodMonitor CRD from prometheus-operator
+	excludeFilters := []string{"!backup-restore", "!snapshot", "!postgres-major-upgrade", "!plugin", "!observability"}
 
 	var labelFilter string
 	if len(labelFilters) > 0 {
