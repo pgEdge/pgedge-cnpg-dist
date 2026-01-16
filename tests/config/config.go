@@ -20,6 +20,7 @@ type Config struct {
 // CNPGVersion represents a specific CNPG version configuration
 type CNPGVersion struct {
 	Version          string                    `yaml:"version"`
+	ChartVersion     string                    `yaml:"chart_version"`
 	GitTag           string                    `yaml:"git_tag"`
 	OperatorImage    string                    `yaml:"operator_image"`
 	PostgresVersions []string                  `yaml:"postgres_versions"`

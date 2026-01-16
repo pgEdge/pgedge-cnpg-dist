@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestImageValidationPolicy verifies that non-pgEdge PostgreSQL images are blocked
-func TestImageValidationPolicy(t *testing.T) {
+// TestImageValidation verifies that non-pgEdge PostgreSQL images are blocked
+func TestImageValidation(t *testing.T) {
 	t.Parallel()
 
 	// Load configuration
@@ -36,6 +36,7 @@ func TestImageValidationPolicy(t *testing.T) {
 	helpers.DeployCNPGOperator(t,
 		provider.GetKubeConfigPath(),
 		cnpgVersion.Version,
+		cnpgVersion.ChartVersion,
 		"cnpg-system",
 		cnpgVersion.GetOperatorImageName(),
 		pgEdgeImage,

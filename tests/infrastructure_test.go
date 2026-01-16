@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestKindClusterProvisioning validates that we can create a Kind cluster with CSI support
-func TestKindClusterProvisioning(t *testing.T) {
+// TestInfra validates that we can create a Kind cluster with CSI support
+func TestInfra(t *testing.T) {
 	t.Parallel()
 
 	// Load configuration
@@ -63,8 +63,8 @@ func TestKindClusterProvisioning(t *testing.T) {
 	})
 }
 
-// TestCNPGOperatorDeployment validates CNPG operator can be deployed
-func TestCNPGOperatorDeployment(t *testing.T) {
+// TestOperator validates CNPG operator can be deployed using the static manifest
+func TestOperator(t *testing.T) {
 	t.Parallel()
 
 	// Load configuration
@@ -79,20 +79,11 @@ func TestCNPGOperatorDeployment(t *testing.T) {
 	provider := providers.CreateFromEnv(t, "cnpg-operator-test")
 	providers.Setup(t, provider)
 
-	// Get PostgreSQL image name
-	postgresImage := cfg.GetPostgresImageName(
-		cfg.PostgresImages.DefaultRegistry,
-		cnpgVersion.PostgresVersions[0],
-		"standard",
-	)
-
-	// Deploy CNPG operator
-	operator := helpers.DeployCNPGOperator(t,
+	// Deploy CNPG operator from manifest (no Helm, tests the static YAML)
+	operator := helpers.DeployCNPGOperatorFromManifest(t,
 		provider.GetKubeConfigPath(),
 		cnpgVersion.Version,
 		"cnpg-system",
-		cnpgVersion.GetOperatorImageName(),
-		postgresImage,
 	)
 
 	t.Run("Verify operator is running", func(t *testing.T) {
@@ -117,46 +108,3 @@ func TestCNPGOperatorDeployment(t *testing.T) {
 	})
 }
 
-// TestMultiVersionCNPG validates we can test multiple CNPG versions
-func TestMultiVersionCNPG(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping multi-version test in short mode")
-	}
-
-	// Load configuration
-	cfg, err := config.LoadConfig()
-	require.NoError(t, err, "Failed to load configuration")
-
-	// Test each CNPG version
-	for _, cnpgVersion := range cfg.CNPGVersions {
-		cnpgVersion := cnpgVersion // capture range variable
-
-		t.Run("CNPG-"+cnpgVersion.Version, func(t *testing.T) {
-			t.Parallel()
-
-			// Create cluster using provider from environment
-			provider := providers.CreateFromEnv(t, "cnpg-"+cnpgVersion.Version)
-			providers.Setup(t, provider)
-
-			// Get PostgreSQL image
-			postgresImage := cfg.GetPostgresImageName(
-				cfg.PostgresImages.DefaultRegistry,
-				cnpgVersion.PostgresVersions[0],
-				"standard",
-			)
-
-			// Deploy operator
-			operator := helpers.DeployCNPGOperator(t,
-				provider.GetKubeConfigPath(),
-				cnpgVersion.Version,
-				"cnpg-system",
-				cnpgVersion.GetOperatorImageName(),
-				postgresImage,
-			)
-
-			// Verify deployment
-			err := helpers.GetDeployment(t, operator.KubectlOptions, operator.ReleaseName)
-			require.NoError(t, err, "Operator deployment should exist")
-		})
-	}
-}

@@ -58,7 +58,6 @@ help: ## Show this help message
 	@echo "Multi-Version Testing:"
 	@echo "  make test-all-cnpg       - Test all CNPG versions"
 	@echo "  make test-all-postgres   - Test all PostgreSQL versions"
-	@echo "  make test-matrix         - Test full version matrix (VERY SLOW!)"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean               - Clean all test artifacts"
@@ -101,31 +100,31 @@ check-prereqs: ## Check if required tools are installed
 test-smoke: check-prereqs ## Run smoke tests (fastest)
 	@echo "$(BLUE)Running smoke tests...$(NC)"
 	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
-		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGUpstreamSmoke
+		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestUpstreamSmoke
 
 .PHONY: test-infra
 test-infra: check-prereqs ## Run infrastructure validation tests
 	@echo "$(BLUE)Running infrastructure tests...$(NC)"
 	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
-		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestKindClusterProvisioning
+		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestInfra
 
 .PHONY: test-operator
 test-operator: check-prereqs ## Run CNPG operator deployment tests
 	@echo "$(BLUE)Running operator deployment tests...$(NC)"
 	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
-		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGOperatorDeployment
+		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestOperator
 
 .PHONY: test-image-validation
 test-image-validation: check-prereqs ## Run image validation policy tests
 	@echo "$(BLUE)Running image validation policy tests...$(NC)"
 	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
-		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestImageValidationPolicy
+		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestImageValidation
 
 .PHONY: test-comprehensive
 test-comprehensive: check-prereqs ## Run comprehensive upstream E2E tests
 	@echo "$(BLUE)Running comprehensive E2E tests (this may take a while)...$(NC)"
 	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
-		go test $(TEST_FLAGS) -timeout 3h . -run TestCNPGUpstreamE2E
+		go test $(TEST_FLAGS) -timeout 3h . -run TestUpstreamComprehensive
 
 .PHONY: test-all
 test-all: check-prereqs ## Run all tests in parallel
@@ -139,7 +138,7 @@ define CNPG_VERSION_RULE
 .PHONY: test-cnpg-$(1)
 test-cnpg-$(1): check-prereqs
 	@echo "$(BLUE)Testing CNPG version $(1)...$(NC)"
-	cd tests && CNPG_VERSION=$(1) go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGOperatorDeployment
+	cd tests && CNPG_VERSION=$(1) go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestOperator
 endef
 
 $(foreach version,$(ALL_CNPG_VERSIONS),$(eval $(call CNPG_VERSION_RULE,$(version))))
@@ -148,7 +147,7 @@ define POSTGRES_VERSION_RULE
 .PHONY: test-pg-$(1)
 test-pg-$(1): check-prereqs
 	@echo "$(BLUE)Testing PostgreSQL version $(1)...$(NC)"
-	cd tests && POSTGRES_VERSION=$(1) go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGOperatorDeployment
+	cd tests && POSTGRES_VERSION=$(1) go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestOperator
 endef
 
 $(foreach version,$(ALL_POSTGRES_VERSIONS),$(eval $(call POSTGRES_VERSION_RULE,$(version))))
@@ -157,47 +156,28 @@ define VARIANT_RULE
 .PHONY: test-$(1)
 test-$(1): check-prereqs
 	@echo "$(BLUE)Testing variant $(1)...$(NC)"
-	cd tests && POSTGRES_VARIANT=$(1) go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGOperatorDeployment
+	cd tests && POSTGRES_VARIANT=$(1) go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestOperator
 endef
 
 $(foreach variant,$(ALL_VARIANTS),$(eval $(call VARIANT_RULE,$(variant))))
-
-# Registry Targets
-
-.PHONY: test-public
-test-public: check-prereqs ## Test with public release images
-	@echo "$(BLUE)Testing with public images...$(NC)"
-	cd tests && POSTGRES_IMAGE_REGISTRY=public go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGOperatorDeployment
-
-.PHONY: test-internal
-test-internal: check-prereqs ## Test with internal pre-release images
-	@echo "$(BLUE)Testing with internal images...$(NC)"
-	cd tests && POSTGRES_IMAGE_REGISTRY=internal go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGOperatorDeployment
 
 # Multi-Version Testing
 
 .PHONY: test-all-cnpg
 test-all-cnpg: check-prereqs ## Test all CNPG versions
 	@echo "$(BLUE)Testing all CNPG versions...$(NC)"
-	cd tests && go test $(TEST_FLAGS) -timeout 2h . -run TestMultiVersionCNPG
+	@for cnpg_version in $(ALL_CNPG_VERSIONS); do \
+		echo "$(GREEN)Testing CNPG $$cnpg_version$(NC)"; \
+		cd tests && CNPG_VERSION=$$cnpg_version go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestOperator || exit 1; \
+	done
 
 .PHONY: test-all-postgres
 test-all-postgres: check-prereqs ## Test all PostgreSQL versions
 	@echo "$(BLUE)Testing all PostgreSQL versions with current CNPG version...$(NC)"
 	@for pg_version in $(ALL_POSTGRES_VERSIONS); do \
 		echo "$(GREEN)Testing PostgreSQL $$pg_version$(NC)"; \
-		cd tests && POSTGRES_VERSION=$$pg_version go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestCNPGOperatorDeployment || exit 1; \
+		cd tests && POSTGRES_VERSION=$$pg_version go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestOperator || exit 1; \
 	done
-
-.PHONY: test-matrix
-test-matrix: check-prereqs ## Test full version matrix (VERY SLOW!)
-	@echo "$(YELLOW)Warning: This will test all combinations and may take hours!$(NC)"
-	@echo "CNPG Versions: $(ALL_CNPG_VERSIONS)"
-	@echo "PostgreSQL Versions: $(ALL_POSTGRES_VERSIONS)"
-	@echo "Image Variants: $(ALL_VARIANTS)"
-	@echo "Press Ctrl+C to cancel, or wait 10 seconds to continue..."
-	@sleep 10
-	cd tests && go test $(TEST_FLAGS) -timeout 6h -parallel 3 . -run TestCNPGUpstreamMultiVersion
 
 # Cleanup Targets
 

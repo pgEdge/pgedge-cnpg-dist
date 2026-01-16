@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCNPGUpstreamE2E runs the upstream CNPG E2E tests
-func TestCNPGUpstreamE2E(t *testing.T) {
+// TestUpstreamComprehensive runs the upstream CNPG E2E tests
+func TestUpstreamComprehensive(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping upstream E2E tests in short mode")
 	}
@@ -45,6 +45,7 @@ func TestCNPGUpstreamE2E(t *testing.T) {
 	operator := helpers.DeployCNPGOperator(t,
 		provider.GetKubeConfigPath(),
 		cnpgVersion.Version,
+		cnpgVersion.ChartVersion,
 		"cnpg-system",
 		cnpgVersion.GetOperatorImageName(),
 		postgresImage,
@@ -72,8 +73,8 @@ func TestCNPGUpstreamE2E(t *testing.T) {
 	}
 }
 
-// TestCNPGUpstreamSmoke runs only smoke tests from upstream
-func TestCNPGUpstreamSmoke(t *testing.T) {
+// TestUpstreamSmoke runs only smoke tests from upstream
+func TestUpstreamSmoke(t *testing.T) {
 	t.Parallel()
 
 	// Load configuration
@@ -100,6 +101,7 @@ func TestCNPGUpstreamSmoke(t *testing.T) {
 	helpers.DeployCNPGOperator(t,
 		provider.GetKubeConfigPath(),
 		cnpgVersion.Version,
+		cnpgVersion.ChartVersion,
 		"cnpg-system",
 		cnpgVersion.GetOperatorImageName(),
 		postgresImage,
@@ -114,61 +116,6 @@ func TestCNPGUpstreamSmoke(t *testing.T) {
 	// Assert tests passed
 	require.Equal(t, 0, testResults.Failed, "Smoke tests failed")
 	require.Greater(t, testResults.Passed, 0, "Expected smoke tests to pass")
-}
-
-// TestCNPGUpstreamMultiVersion tests multiple CNPG and PostgreSQL versions
-func TestCNPGUpstreamMultiVersion(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping multi-version tests in short mode")
-	}
-
-	// Load configuration
-	cfg, err := config.LoadConfig()
-	require.NoError(t, err, "Failed to load configuration")
-
-	// Test matrix: each CNPG version with each supported PostgreSQL version
-	for _, cnpgVersion := range cfg.CNPGVersions {
-		for _, pgVersion := range cnpgVersion.PostgresVersions {
-
-			testName := fmt.Sprintf("CNPG-%s-PG-%s", cnpgVersion.Version, pgVersion)
-
-			t.Run(testName, func(t *testing.T) {
-				t.Parallel()
-
-				// Create cluster using provider from environment
-				clusterName := fmt.Sprintf("cnpg-%s-pg-%s",
-					strings.ReplaceAll(cnpgVersion.Version, ".", ""),
-					pgVersion,
-				)
-				provider := providers.CreateFromEnv(t, clusterName)
-				providers.Setup(t, provider)
-
-				// Get PostgreSQL image
-				postgresImage := cfg.GetPostgresImageName(
-					cfg.PostgresImages.DefaultRegistry,
-					pgVersion,
-					"standard",
-				)
-
-				// Deploy CNPG operator
-				helpers.DeployCNPGOperator(t,
-					provider.GetKubeConfigPath(),
-					cnpgVersion.Version,
-					"cnpg-system",
-					cnpgVersion.GetOperatorImageName(),
-					postgresImage,
-				)
-
-				// Clone CNPG repository
-				cnpgRepo := cloneCNPGRepo(t, cnpgVersion.GitTag, cnpgVersion.Version, pgVersion)
-
-				// Run smoke tests for this combination
-				testResults := runUpstreamE2ETests(t, cnpgRepo, provider.GetKubeConfigPath(), postgresImage, "smoke")
-
-				require.Equal(t, 0, testResults.Failed, "Tests failed for %s", testName)
-			})
-		}
-	}
 }
 
 // TestResults represents E2E test execution results

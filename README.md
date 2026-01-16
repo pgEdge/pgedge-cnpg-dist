@@ -1,22 +1,19 @@
 # CNPG Build - pgEdge CloudNativePG Distribution
 
-Build, package, and test pgEdge's distribution of CloudNativePG (CNPG) with pgEdge Enterprise Postgres images.
+Build, package, and test pgEdge's distribution of CloudNativePG (CNPG) with [pgEdge Enterprise Postgres images](https://github.com/pgEdge/postgres-images).
 
 ## Overview
 
 This project serves two primary purposes:
 
 ### Build & Package pgEdge CNPG Distribution
-- **Operator Customization**: Patch upstream CNPG operator for pgEdge PostgreSQL compatibility
-- **Image Building**: Produce pgEdge distributed CNPG operator images
-- **Chart Management**: Generate and maintain Helm charts for multiple CNPG versions
-- **Release Automation**: Package and publish pgEdge CNPG releases
+- **Image Building**: Build and distribute CNPG operator and plugin images
+- **Chart Management**: Generate and maintain Helm charts and manifests for multiple CNPG versions
 
 ### End-to-End Testing Infrastructure
 - **Go/Terratest Framework**: Automated Kubernetes cluster provisioning (Kind, EKS, AKS, GKE)
-- **Multi-Version Testing**: Test CNPG versions across PostgreSQL versions and variants
-- **Upstream Validation**: Run official CNPG test suite with pgEdge images
-
+- **Multi-Version Testing**: Test CNPG versions across PostgreSQL versions and Kubernetes distributions
+- **Upstream Validation**: Run official CNPG test suite with pgEdge distributed operator and pgEdge Enterprise Postgres images
 
 ## Quick Start
 
@@ -24,10 +21,7 @@ This project serves two primary purposes:
 
 ```bash
 # macOS
-brew install go kind kubectl helm git docker
-
-# Install Ginkgo (for upstream CNPG tests)
-go install github.com/onsi/ginkgo/v2/ginkgo@latest
+make install-tools
 
 # Verify Docker is running
 docker ps
@@ -46,6 +40,9 @@ make test-infra
 make test-operator
 
 # Run smoke tests (fastest E2E tests)
+make test-smoke
+
+# Run comprehensive tests (more extensive E2E tests)
 make test-smoke
 ```
 
@@ -100,23 +97,6 @@ make test-comprehensive   # Full E2E suite (~3h)
 
 **Note**: `backup-restore` and `snapshot` tests are automatically excluded because pgEdge images use the new Barman Cloud Plugin architecture instead of embedded Barman tools.
 
-### Registry Selection
-
-```bash
-# Test with public images (default)
-make test-public
-
-# Test with internal pre-release images
-make test-internal
-```
-
-### Multi-Version Testing
-
-```bash
-# Test full version matrix (VERY SLOW!)
-make test-matrix
-```
-
 ## Configuration
 
 All tests are configured via [`tests/config/versions.yaml`](tests/config/versions.yaml):
@@ -124,6 +104,7 @@ All tests are configured via [`tests/config/versions.yaml`](tests/config/version
 ```yaml
 cnpg_versions:
   - version: "1.28.0"
+    chart_version: "0.27.0"  # Helm chart version (different from operator version)
     git_tag: "v1.28.0"
     operator_image: "ghcr.io/pgedge/cloudnative-pg:1.28.0"
     postgres_versions: ["16", "17", "18"]

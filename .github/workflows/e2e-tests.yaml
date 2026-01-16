@@ -6,6 +6,11 @@ on:
   push:
   workflow_dispatch:
 
+# Comma separated list of providers to test (filter matrix to only these)
+# For PR/push, we only test Kind.
+env:
+  CLUSTER_PROVIDERS: "kind"
+
 jobs:
   # Single job for image validation test
   test-image-validation:
@@ -56,15 +61,22 @@ jobs:
         id: set-matrix
         run: |
           # Generate matrix JSON from versions.yaml
-          matrix=$(yq eval -o=json '.cnpg_versions[] | {"cnpg_version": .version, "k8s_versions": .providers.kind.kubernetes_versions} | . as $item | $item.k8s_versions[] | {"cnpg_version": $item.cnpg_version, "k8s_version": ., "test_type": ["comprehensive", "infra"]} | .test_type[] as $test | {"cnpg_version": .cnpg_version, "k8s_version": .k8s_version, "test_type": $test}' tests/config/versions.yaml | jq -s -c .)
+          # Iterates over cnpg_versions, then providers (e.g., kind), then k8s versions, then test types
+          full_matrix=$(yq eval -o=json '.cnpg_versions[] | .version as $cnpg | .providers | to_entries[] | {"cnpg_version": $cnpg, "provider": .key, "k8s_versions": .value.kubernetes_versions} | . as $item | $item.k8s_versions[] | {"cnpg_version": $item.cnpg_version, "provider": $item.provider, "k8s_version": ., "test_type": ["comprehensive", "infra", "operator"]} | .test_type[] as $test | {"cnpg_version": .cnpg_version, "provider": .provider, "k8s_version": .k8s_version, "test_type": $test}' tests/config/versions.yaml | jq -s .)
+
+          # Filter to only include providers specified in CLUSTER_PROVIDERS env var
+          # Convert comma-separated CLUSTER_PROVIDERS to JSON array for jq filtering
+          providers_json=$(echo "$CLUSTER_PROVIDERS" | tr ',' '\n' | jq -R . | jq -s .)
+          matrix=$(echo "$full_matrix" | jq -c --argjson providers "$providers_json" '[.[] | select(.provider as $p | $providers | index($p))]')
 
           echo "matrix={\"include\":$matrix}" >> $GITHUB_OUTPUT
 
           # Print for debugging
+          echo "Providers filter: $CLUSTER_PROVIDERS"
           echo "Generated matrix:"
           echo "$matrix" | jq .
 
-  # Matrix job for Kind smoke, comprehensive and infrastructure tests
+  # Matrix job for Kind comprehensive, infrastructure and operator tests
   kind-test-matrix:
     name: ${{ matrix.provider }} / ${{ matrix.cnpg_version }} / K8s ${{ matrix.k8s_version }} / ${{ matrix.test_type }}
     runs-on: ubuntu-latest
@@ -120,11 +132,21 @@ jobs:
           NODE_COUNT: 3
           CNPG_VERSION: ${{ matrix.cnpg_version }}
 
+      - name: Run operator test
+        if: matrix.test_type == 'operator'
+        run: make test-operator
+        env:
+          CLUSTER_PROVIDER: kind
+          KUBERNETES_VERSION: ${{ matrix.k8s_version }}
+          NODE_COUNT: 3
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
+
       - name: Cleanup
         if: always()
         run: |
           kind delete cluster --name cnpg-smoke-test 2>/dev/null || true
           kind delete cluster --name cnpg-infra-test 2>/dev/null || true
+          kind delete cluster --name cnpg-operator-test 2>/dev/null || true
 
   # Summary job that requires all matrix jobs to pass
   test-summary:

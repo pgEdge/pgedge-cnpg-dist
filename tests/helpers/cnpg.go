@@ -27,6 +27,7 @@ type CNPGOperator struct {
 // CNPGOperatorConfig represents CNPG operator configuration
 type CNPGOperatorConfig struct {
 	Version       string
+	ChartVersion  string
 	Namespace     string
 	ReleaseName   string
 	OperatorImage string
@@ -53,7 +54,7 @@ func NewCNPGOperator(t *testing.T, config *CNPGOperatorConfig, kubeconfigPath st
 		projectRoot = parent
 	}
 
-	chartPath := filepath.Join(projectRoot, "charts", "cloudnative-pg", fmt.Sprintf("v%s", config.Version))
+	chartPath := filepath.Join(projectRoot, "charts", "cloudnative-pg", fmt.Sprintf("v%s", config.ChartVersion))
 
 	return &CNPGOperator{
 		Version:        config.Version,
@@ -195,11 +196,12 @@ func (co *CNPGOperator) GetOperatorLogs(t *testing.T) (string, error) {
 }
 
 // DeployCNPGOperator is a convenience function to deploy CNPG operator
-func DeployCNPGOperator(t *testing.T, kubeconfigPath, version, namespace, operatorImage, postgresImage string) *CNPGOperator {
+func DeployCNPGOperator(t *testing.T, kubeconfigPath, version, chartVersion, namespace, operatorImage, postgresImage string) *CNPGOperator {
 	t.Helper()
 
 	config := &CNPGOperatorConfig{
 		Version:       version,
+		ChartVersion:  chartVersion,
 		Namespace:     namespace,
 		ReleaseName:   "cloudnative-pg",
 		OperatorImage: operatorImage,
@@ -218,6 +220,60 @@ func DeployCNPGOperator(t *testing.T, kubeconfigPath, version, namespace, operat
 		}
 	})
 
+	return operator
+}
+
+// DeployCNPGOperatorFromManifest deploys CNPG operator using kubectl apply with the static manifest
+func DeployCNPGOperatorFromManifest(t *testing.T, kubeconfigPath, version, namespace string) *CNPGOperator {
+	t.Helper()
+
+	// Get project root
+	projectRoot, err := os.Getwd()
+	require.NoError(t, err, "Failed to get working directory")
+
+	// Find project root by looking for go.mod
+	for {
+		if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
+			break
+		}
+		parent := filepath.Dir(projectRoot)
+		if parent == projectRoot {
+			require.Fail(t, "Could not find project root (go.mod not found)")
+		}
+		projectRoot = parent
+	}
+
+	manifestPath := filepath.Join(projectRoot, "manifests", "cloudnative-pg", fmt.Sprintf("v%s", version), fmt.Sprintf("cnpg-%s.yaml", version))
+
+	// Verify manifest exists
+	_, err = os.Stat(manifestPath)
+	require.NoError(t, err, "Manifest not found at %s", manifestPath)
+
+	kubectlOptions := k8s.NewKubectlOptions("", kubeconfigPath, namespace)
+
+	t.Logf("Deploying CNPG operator %s from manifest: %s", version, manifestPath)
+
+	// Apply the manifest
+	k8s.KubectlApply(t, kubectlOptions, manifestPath)
+
+	operator := &CNPGOperator{
+		Version:        version,
+		Namespace:      namespace,
+		ReleaseName:    "cnpg-controller-manager", // Deployment name in manifest
+		KubectlOptions: k8s.NewKubectlOptions("", kubeconfigPath, namespace),
+	}
+
+	// Wait for operator to be ready
+	err = operator.waitForOperatorReady(t, 5*time.Minute)
+	require.NoError(t, err, "Operator not ready after manifest apply")
+
+	// Register cleanup
+	t.Cleanup(func() {
+		t.Logf("Cleaning up CNPG operator from manifest")
+		_ = k8s.KubectlDeleteE(t, kubectlOptions, manifestPath)
+	})
+
+	t.Logf("CNPG operator %s deployed successfully from manifest", version)
 	return operator
 }
 
