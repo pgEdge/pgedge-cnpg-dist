@@ -166,8 +166,11 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 	t.Logf("Running upstream E2E tests from %s", testsDir)
 
 	// Build label filter
-	// Always exclude backup-restore and snapshot tests (pgEdge images use new Barman Cloud Plugin)
-	excludeFilters := []string{"!backup-restore", "!snapshot"}
+	// Always exclude these tests:
+	// - backup-restore, snapshot: pgEdge images use new Barman Cloud Plugin
+	// - postgres-major-upgrade: requires specific upgrade path setup
+	// - plugin: requires plugin infrastructure not available in test environment
+	excludeFilters := []string{"!backup-restore", "!snapshot", "!postgres-major-upgrade", "!plugin"}
 
 	var labelFilter string
 	if len(labelFilters) > 0 {

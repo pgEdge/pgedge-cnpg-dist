@@ -151,7 +151,10 @@ make test-smoke           # Smoke tests (~30min)
 make test-comprehensive   # Full E2E suite (~3h)
 ```
 
-**Note**: `backup-restore` and `snapshot` tests are automatically excluded because pgEdge images use the new Barman Cloud Plugin architecture instead of embedded Barman tools.
+**Excluded tests:**
+- `backup-restore`, `snapshot` - pgEdge images use new Barman Cloud Plugin architecture
+- `postgres-major-upgrade` - requires specific upgrade path setup
+- `plugin` - requires plugin infrastructure not available in test environment
 
 ## Configuration
 
