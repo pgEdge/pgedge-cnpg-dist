@@ -24,6 +24,7 @@ CLOUD_REGION ?=
 TEST_TIMEOUT ?= 30m
 TEST_PARALLEL ?= 8
 TEST_FLAGS ?= -v
+LABEL_FILTER ?=
 
 # Colors for output
 RED := \033[0;31m
@@ -43,6 +44,7 @@ help: ## Show this help message
 	@echo "  make test-operator           - Run operator deployment tests"
 	@echo "  make test-image-validation   - Run image validation policy tests"
 	@echo "  make test-comprehensive      - Run comprehensive upstream E2E tests"
+	@echo "  make test-upstream LABEL_FILTER=<label> - Run upstream tests with custom label"
 	@echo "  make test-all                - Run all tests"
 	@echo ""
 	@echo "Version-Specific Targets:"
@@ -98,9 +100,7 @@ check-prereqs: ## Check if required tools are installed
 
 .PHONY: test-smoke
 test-smoke: check-prereqs ## Run smoke tests (fastest)
-	@echo "$(BLUE)Running smoke tests...$(NC)"
-	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
-		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestUpstreamSmoke
+	@$(MAKE) test-upstream LABEL_FILTER=smoke
 
 .PHONY: test-infra
 test-infra: check-prereqs ## Run infrastructure validation tests
@@ -121,10 +121,14 @@ test-image-validation: check-prereqs ## Run image validation policy tests
 		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestImageValidation
 
 .PHONY: test-comprehensive
-test-comprehensive: check-prereqs ## Run comprehensive upstream E2E tests
-	@echo "$(BLUE)Running comprehensive E2E tests (this may take a while)...$(NC)"
+test-comprehensive: check-prereqs ## Run comprehensive upstream E2E tests (all labels)
+	@$(MAKE) test-upstream
+
+.PHONY: test-upstream
+test-upstream: check-prereqs ## Run upstream E2E tests with custom label filter (LABEL_FILTER=postgres-configuration)
+	@echo "$(BLUE)Running upstream E2E tests$(if $(LABEL_FILTER), with label filter: $(LABEL_FILTER),)...$(NC)"
 	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
-		go test $(TEST_FLAGS) -timeout 3h . -run TestUpstreamComprehensive
+		LABEL_FILTER="$(LABEL_FILTER)" go test $(TEST_FLAGS) -timeout 3h . -run TestUpstream
 
 .PHONY: test-all
 test-all: check-prereqs ## Run all tests in parallel

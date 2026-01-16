@@ -14,8 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestUpstreamComprehensive runs the upstream CNPG E2E tests
-func TestUpstreamComprehensive(t *testing.T) {
+// TestUpstream runs the upstream CNPG E2E tests
+// Use LABEL_FILTER env var to filter tests (e.g., LABEL_FILTER=smoke, LABEL_FILTER=postgres-configuration)
+func TestUpstream(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping upstream E2E tests in short mode")
 	}
@@ -73,51 +74,6 @@ func TestUpstreamComprehensive(t *testing.T) {
 	}
 }
 
-// TestUpstreamSmoke runs only smoke tests from upstream
-func TestUpstreamSmoke(t *testing.T) {
-	t.Parallel()
-
-	// Load configuration
-	cfg, err := config.LoadConfig()
-	require.NoError(t, err, "Failed to load configuration")
-
-	// Get CNPG version from environment or use default
-	cnpgVersion, err := cfg.GetCNPGVersionFromEnv()
-	require.NoError(t, err, "Failed to get CNPG version")
-	postgresVersion := cnpgVersion.GetPostgresVersionFromEnv()
-
-	// Create cluster using provider from environment
-	provider := providers.CreateFromEnv(t, "cnpg-smoke-test")
-	providers.Setup(t, provider)
-
-	// Get PostgreSQL image
-	postgresImage := cfg.GetPostgresImageName(
-		cfg.PostgresImages.DefaultRegistry,
-		postgresVersion,
-		"standard",
-	)
-
-	// Deploy CNPG operator
-	helpers.DeployCNPGOperator(t,
-		provider.GetKubeConfigPath(),
-		cnpgVersion.Version,
-		cnpgVersion.ChartVersion,
-		"cnpg-system",
-		cnpgVersion.GetOperatorImageName(),
-		postgresImage,
-	)
-
-	// Clone CNPG repository
-	cnpgRepo := cloneCNPGRepo(t, cnpgVersion.GitTag, cnpgVersion.Version, postgresVersion)
-
-	// Run smoke tests only
-	testResults := runUpstreamE2ETests(t, cnpgRepo, provider.GetKubeConfigPath(), postgresImage, "smoke")
-
-	// Assert tests passed
-	require.Equal(t, 0, testResults.Failed, "Smoke tests failed")
-	require.Greater(t, testResults.Passed, 0, "Expected smoke tests to pass")
-}
-
 // TestResults represents E2E test execution results
 type TestResults struct {
 	Passed  int
@@ -158,7 +114,7 @@ func cloneCNPGRepo(t *testing.T, gitTag, cnpgVersion, postgresVersion string) st
 }
 
 // runUpstreamE2ETests executes the upstream CNPG E2E tests
-func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImage string, labelFilters ...string) TestResults {
+func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImage string) TestResults {
 	t.Helper()
 
 	testsDir := filepath.Join(cnpgRepoDir, "tests", "e2e")
@@ -172,6 +128,16 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 	// - plugin: requires plugin infrastructure not available in test environment
 	// - observability: requires PodMonitor CRD from prometheus-operator
 	excludeFilters := []string{"!backup-restore", "!snapshot", "!postgres-major-upgrade", "!plugin", "!observability"}
+
+	// Skip tests by name pattern (regex)
+	// - Image.Catalogs: requires E2E_PRE_ROLLING_UPDATE_IMG with semantic version tag
+	skipTests := []string{"Image.Catalogs"}
+
+	// Check for label filter from environment variable (e.g., LABEL_FILTER=smoke)
+	var labelFilters []string
+	if envLabelFilter := os.Getenv("LABEL_FILTER"); envLabelFilter != "" {
+		labelFilters = append(labelFilters, envLabelFilter)
+	}
 
 	var labelFilter string
 	if len(labelFilters) > 0 {
@@ -200,8 +166,9 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 	cmd := exec.Command("ginkgo",
 		"run",
 		fmt.Sprintf("--label-filter=%s", labelFilter),
-		"-p",                          // Parallel
-		"--procs=4",                   // 4 parallel processes
+		fmt.Sprintf("--skip=%s", strings.Join(skipTests, "|")),
+		"-p", // Parallel
+		"--procs=2",                   // 2 parallel processes
 		"--show-node-events",          // Show node events
 		"--timeout=3h",                // Overall timeout
 		"--poll-progress-after=1200s", // Show progress if quiet
