@@ -162,18 +162,19 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 		"E2E_DEFAULT_VOLUMESNAPSHOT_CLASS=csi-hostpath-snapclass",
 	)
 
-	// Run ginkgo tests
+	// Run ginkgo tests (flags match upstream CNPG run-e2e.sh)
 	cmd := exec.Command("ginkgo",
 		"run",
 		fmt.Sprintf("--label-filter=%s", labelFilter),
 		fmt.Sprintf("--skip=%s", strings.Join(skipTests, "|")),
-		"-p", // Parallel
-		"--procs=2",                   // 2 parallel processes
-		"--show-node-events",          // Show node events
-		"--timeout=3h",                // Overall timeout
-		"--poll-progress-after=1200s", // Show progress if quiet
+		"--nodes=2",                     // 2 parallel nodes
+		"--timeout=3h",                  // Overall timeout
+		"--poll-progress-after=1200s",   // Show progress if quiet for 20min
+		"--poll-progress-interval=150s", // Update progress every 2.5min
+		"--github-output",               // GitHub-friendly output
+		"--force-newlines",              // Ensure newlines in output
+		"-v",                            // Verbose
 		"--json-report=report.json",
-		"--junit-report=junit.xml",
 		"./...",
 	)
 

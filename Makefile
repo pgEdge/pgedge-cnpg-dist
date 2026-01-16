@@ -98,9 +98,7 @@ check-prereqs: ## Check if required tools are installed
 
 # Quick Start Targets
 
-.PHONY: test-smoke
-test-smoke: check-prereqs ## Run smoke tests (fastest)
-	@$(MAKE) test-upstream LABEL_FILTER=smoke
+
 
 .PHONY: test-infra
 test-infra: check-prereqs ## Run infrastructure validation tests
@@ -121,11 +119,15 @@ test-image-validation: check-prereqs ## Run image validation policy tests
 		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestImageValidation
 
 .PHONY: test-comprehensive
-test-comprehensive: check-prereqs ## Run comprehensive upstream E2E tests (all labels)
+test-comprehensive: ## Run comprehensive upstream E2E tests (all labels)
 	@$(MAKE) test-upstream
 
+.PHONY: test-smoke
+test-smoke: ## Run smoke tests (fastest)
+	@$(MAKE) test-upstream LABEL_FILTER=smoke
+
 .PHONY: test-upstream
-test-upstream: check-prereqs ## Run upstream E2E tests with custom label filter (LABEL_FILTER=postgres-configuration)
+test-upstream: check-prereqs ## Run upstream E2E tests with custom label filter
 	@echo "$(BLUE)Running upstream E2E tests$(if $(LABEL_FILTER), with label filter: $(LABEL_FILTER),)...$(NC)"
 	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
 		LABEL_FILTER="$(LABEL_FILTER)" go test $(TEST_FLAGS) -timeout 3h . -run TestUpstream
