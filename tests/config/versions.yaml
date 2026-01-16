@@ -6,7 +6,7 @@ cnpg_versions:
     chart_version: "0.27.0"
     git_tag: "v1.28.0"
     operator_image: "ghcr.io/pgedge/cloudnative-pg:1.28.0"
-    postgres_versions: ["16", "17", "18"]
+    postgres_versions: ["18", "17", "16"]
     providers:
       kind:
         kubernetes_versions: ["1.32", "1.33", "1.34"]
@@ -15,7 +15,7 @@ cnpg_versions:
     chart_version: "0.26.1"
     git_tag: "v1.27.1"
     operator_image: "ghcr.io/pgedge/cloudnative-pg:1.27.1"
-    postgres_versions: ["16", "17", "18"]
+    postgres_versions: ["18", "17", "16"]
     providers:
       kind:
         kubernetes_versions: ["1.31", "1.32", "1.33"]
@@ -24,7 +24,7 @@ cnpg_versions:
     chart_version: "0.26.0"
     git_tag: "v1.27.0"
     operator_image: "ghcr.io/pgedge/cloudnative-pg:1.27.0"
-    postgres_versions: ["16", "17", "18"]
+    postgres_versions: ["18", "17", "16"]
     providers:
       kind:
         kubernetes_versions: ["1.31", "1.32", "1.33"]
@@ -215,4 +215,4 @@ kubernetes_versions:
         url: "https://raw.githubusercontent.com/kubernetes-csi/csi-driver-host-path/v1.17.0/deploy/kubernetes-1.30/hostpath/csi-hostpath-plugin.yaml"
 
 # Default K8s version to use if specific version not found
-default_kubernetes_version: "1.32"
+default_kubernetes_version: "1.34"

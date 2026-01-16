@@ -209,3 +209,28 @@ func (c *Config) GetCNPGVersionFromEnv() (*CNPGVersion, error) {
 
 	return c.GetCNPGVersion(version)
 }
+
+// GetPostgresVersionFromEnv returns the PostgreSQL version from environment or the first one from the CNPG version
+func (v *CNPGVersion) GetPostgresVersionFromEnv() string {
+	version := os.Getenv("POSTGRES_VERSION")
+	if version == "" {
+		// Return first version as default (should be the latest, e.g., "18")
+		if len(v.PostgresVersions) == 0 {
+			return "17" // Fallback if no versions defined
+		}
+		return v.PostgresVersions[0]
+	}
+
+	// Validate the version exists in the allowed list
+	for _, allowed := range v.PostgresVersions {
+		if allowed == version {
+			return version
+		}
+	}
+
+	// If not found, return first (default) version
+	if len(v.PostgresVersions) > 0 {
+		return v.PostgresVersions[0]
+	}
+	return "17"
+}

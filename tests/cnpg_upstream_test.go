@@ -27,7 +27,7 @@ func TestUpstreamComprehensive(t *testing.T) {
 	// Get CNPG version from environment or use default
 	cnpgVersion, err := cfg.GetCNPGVersionFromEnv()
 	require.NoError(t, err, "Failed to get CNPG version")
-	postgresVersion := cnpgVersion.PostgresVersions[len(cnpgVersion.PostgresVersions)-1] // Use latest PG version
+	postgresVersion := cnpgVersion.GetPostgresVersionFromEnv()
 
 	// Create cluster using provider from environment
 	clusterName := fmt.Sprintf("cnpg-e2e-%s", strings.ReplaceAll(cnpgVersion.Version, ".", "-"))
@@ -84,7 +84,7 @@ func TestUpstreamSmoke(t *testing.T) {
 	// Get CNPG version from environment or use default
 	cnpgVersion, err := cfg.GetCNPGVersionFromEnv()
 	require.NoError(t, err, "Failed to get CNPG version")
-	postgresVersion := cnpgVersion.PostgresVersions[0]
+	postgresVersion := cnpgVersion.GetPostgresVersionFromEnv()
 
 	// Create cluster using provider from environment
 	provider := providers.CreateFromEnv(t, "cnpg-smoke-test")

@@ -5,11 +5,41 @@ on:
     branches: [main]
   push:
   workflow_dispatch:
+    inputs:
+      cluster_providers:
+        description: 'Cluster providers (comma-separated, e.g., "kind,eks")'
+        required: false
+        default: 'kind'
+        type: string
+      cnpg_versions:
+        description: 'CNPG versions (comma-separated, e.g., "1.28.0,1.27.1" or "all")'
+        required: false
+        default: 'all'
+        type: string
+      k8s_versions:
+        description: 'Kubernetes versions (comma-separated, e.g., "1.32,1.33" or "all")'
+        required: false
+        default: 'all'
+        type: string
+      test_types:
+        description: 'Test types (comma-separated, e.g., "infra,operator" or "all")'
+        required: false
+        default: 'all'
+        type: string
+      postgres_version:
+        description: 'PostgreSQL version (e.g., "18", "17", "16" or empty for default)'
+        required: false
+        default: ''
+        type: string
 
-# Comma separated list of providers to test (filter matrix to only these)
-# For PR/push, we only test Kind.
+# Default filters for PR/push (only Kind, all versions/tests)
+# workflow_dispatch inputs override these
 env:
-  CLUSTER_PROVIDERS: "kind"
+  CLUSTER_PROVIDERS: ${{ inputs.cluster_providers || 'kind' }}
+  CNPG_VERSIONS: ${{ inputs.cnpg_versions || 'all' }}
+  K8S_VERSIONS: ${{ inputs.k8s_versions || 'all' }}
+  TEST_TYPES: ${{ inputs.test_types || 'all' }}
+  POSTGRES_VERSION: ${{ inputs.postgres_version || '' }}
 
 jobs:
   # Single job for image validation test
@@ -60,20 +90,81 @@ jobs:
       - name: Generate matrix from versions.yaml
         id: set-matrix
         run: |
-          # Generate matrix JSON from versions.yaml
-          # Iterates over cnpg_versions, then providers (e.g., kind), then k8s versions, then test types
-          full_matrix=$(yq eval -o=json '.cnpg_versions[] | .version as $cnpg | .providers | to_entries[] | {"cnpg_version": $cnpg, "provider": .key, "k8s_versions": .value.kubernetes_versions} | . as $item | $item.k8s_versions[] | {"cnpg_version": $item.cnpg_version, "provider": $item.provider, "k8s_version": ., "test_type": ["comprehensive", "infra", "operator"]} | .test_type[] as $test | {"cnpg_version": .cnpg_version, "provider": .provider, "k8s_version": .k8s_version, "test_type": $test}' tests/config/versions.yaml | jq -s .)
+          # Generate full matrix from versions.yaml
+          # Iterates over: cnpg_versions -> providers -> k8s versions -> test types
+          full_matrix=$(yq eval -o=json '
+            .cnpg_versions[] |
+            .version as $cnpg |
+            .providers | to_entries[] |
+            {
+              "cnpg_version": $cnpg,
+              "provider": .key,
+              "k8s_versions": .value.kubernetes_versions
+            } |
+            . as $item |
+            $item.k8s_versions[] |
+            {
+              "cnpg_version": $item.cnpg_version,
+              "provider": $item.provider,
+              "k8s_version": .,
+              "test_type": ["comprehensive", "infra", "operator"]
+            } |
+            .test_type[] as $test |
+            {
+              "cnpg_version": .cnpg_version,
+              "provider": .provider,
+              "k8s_version": .k8s_version,
+              "test_type": $test
+            }
+          ' tests/config/versions.yaml | jq -s .)
 
-          # Filter to only include providers specified in CLUSTER_PROVIDERS env var
-          # Convert comma-separated CLUSTER_PROVIDERS to JSON array for jq filtering
-          providers_json=$(echo "$CLUSTER_PROVIDERS" | tr ',' '\n' | jq -R . | jq -s .)
-          matrix=$(echo "$full_matrix" | jq -c --argjson providers "$providers_json" '[.[] | select(.provider as $p | $providers | index($p))]')
+          # Build filter arrays from env vars (handle "all" as no filter)
+          if [ "$CLUSTER_PROVIDERS" = "all" ]; then
+            providers_filter="null"
+          else
+            providers_filter=$(echo "$CLUSTER_PROVIDERS" | tr ',' '\n' | jq -R . | jq -s .)
+          fi
+
+          if [ "$CNPG_VERSIONS" = "all" ]; then
+            cnpg_filter="null"
+          else
+            cnpg_filter=$(echo "$CNPG_VERSIONS" | tr ',' '\n' | jq -R . | jq -s .)
+          fi
+
+          if [ "$K8S_VERSIONS" = "all" ]; then
+            k8s_filter="null"
+          else
+            k8s_filter=$(echo "$K8S_VERSIONS" | tr ',' '\n' | jq -R . | jq -s .)
+          fi
+
+          if [ "$TEST_TYPES" = "all" ]; then
+            test_filter="null"
+          else
+            test_filter=$(echo "$TEST_TYPES" | tr ',' '\n' | jq -R . | jq -s .)
+          fi
+
+          # Apply all filters (null means no filter for that field)
+          matrix=$(echo "$full_matrix" | jq -c \
+            --argjson providers "$providers_filter" \
+            --argjson cnpg "$cnpg_filter" \
+            --argjson k8s "$k8s_filter" \
+            --argjson tests "$test_filter" \
+            '[.[] |
+              select(($providers == null) or (.provider as $p | $providers | index($p))) |
+              select(($cnpg == null) or (.cnpg_version as $v | $cnpg | index($v))) |
+              select(($k8s == null) or (.k8s_version as $v | $k8s | index($v))) |
+              select(($tests == null) or (.test_type as $t | $tests | index($t)))
+            ]')
 
           echo "matrix={\"include\":$matrix}" >> $GITHUB_OUTPUT
 
           # Print for debugging
-          echo "Providers filter: $CLUSTER_PROVIDERS"
-          echo "Generated matrix:"
+          echo "Filters applied:"
+          echo "  CLUSTER_PROVIDERS: $CLUSTER_PROVIDERS"
+          echo "  CNPG_VERSIONS: $CNPG_VERSIONS"
+          echo "  K8S_VERSIONS: $K8S_VERSIONS"
+          echo "  TEST_TYPES: $TEST_TYPES"
+          echo "Matrix entries: $(echo "$matrix" | jq length)"
           echo "$matrix" | jq .
 
   # Matrix job for Kind comprehensive, infrastructure and operator tests
@@ -113,6 +204,7 @@ jobs:
           KUBERNETES_VERSION: ${{ matrix.k8s_version }}
           NODE_COUNT: 3
           CNPG_VERSION: ${{ matrix.cnpg_version }}
+          POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
 
       - name: Run infrastructure test
         if: matrix.test_type == 'infra'
@@ -122,6 +214,7 @@ jobs:
           KUBERNETES_VERSION: ${{ matrix.k8s_version }}
           NODE_COUNT: 3
           CNPG_VERSION: ${{ matrix.cnpg_version }}
+          POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
 
       - name: Run comprehensive test
         if: matrix.test_type == 'comprehensive'
@@ -131,6 +224,7 @@ jobs:
           KUBERNETES_VERSION: ${{ matrix.k8s_version }}
           NODE_COUNT: 3
           CNPG_VERSION: ${{ matrix.cnpg_version }}
+          POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
 
       - name: Run operator test
         if: matrix.test_type == 'operator'
@@ -140,6 +234,7 @@ jobs:
           KUBERNETES_VERSION: ${{ matrix.k8s_version }}
           NODE_COUNT: 3
           CNPG_VERSION: ${{ matrix.cnpg_version }}
+          POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
 
       - name: Cleanup
         if: always()
