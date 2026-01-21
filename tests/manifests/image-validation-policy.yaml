@@ -1,0 +1,32 @@
+# ValidatingAdmissionPolicy to block non-pgEdge PostgreSQL images in CNPG clusters
+# This ensures we only test with pgEdge PostgreSQL images, not upstream CNPG images
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: pgedge-postgres-only
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["postgresql.cnpg.io"]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["clusters"]
+  validations:
+  - expression: |
+      !has(object.spec.imageName) ||
+      object.spec.imageName.startsWith('ghcr.io/pgedge/pgedge-postgres:') ||
+      object.spec.imageName.startsWith('ghcr.io/pgedge/pgedge-postgres-internal:')
+    message: "CNPG Cluster must use pgEdge PostgreSQL images (ghcr.io/pgedge/pgedge-postgres or ghcr.io/pgedge/pgedge-postgres-internal). Upstream CNPG images are not allowed in these tests."
+    reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: pgedge-postgres-only-binding
+spec:
+  policyName: pgedge-postgres-only
+  validationActions: ["Deny"]
+  matchResources:
+    namespaceSelector: {}
