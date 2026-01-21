@@ -93,10 +93,15 @@ func TestOperator(t *testing.T) {
 
 	t.Run("Verify operator CRDs are installed", func(t *testing.T) {
 		crds := []string{
-			"clusters.postgresql.cnpg.io",
 			"backups.postgresql.cnpg.io",
-			"scheduledbackups.postgresql.cnpg.io",
+			"clusterimagecatalogs.postgresql.cnpg.io",
+			"clusters.postgresql.cnpg.io",
+			"databases.postgresql.cnpg.io",
+			"imagecatalogs.postgresql.cnpg.io",
 			"poolers.postgresql.cnpg.io",
+			"publications.postgresql.cnpg.io",
+			"scheduledbackups.postgresql.cnpg.io",
+			"subscriptions.postgresql.cnpg.io",
 		}
 
 		opts := provider.GetKubectlOptions("")
@@ -107,4 +112,3 @@ func TestOperator(t *testing.T) {
 		}
 	})
 }
-
