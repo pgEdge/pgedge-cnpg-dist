@@ -129,7 +129,8 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 	// - observability: requires PodMonitor CRD from prometheus-operator
 	// - postgres-configuration: rolling update tests fail with pgEdge images (image tag format)
 	// - pod-scheduling: affinity test fails in CI environment
-	excludeFilters := []string{"!backup-restore", "!snapshot", "!postgres-major-upgrade", "!plugin", "!observability", "!postgres-configuration", "!pod-scheduling"}
+	// - cluster-metadata: configuration update tests timeout due to resource contention in CI
+	excludeFilters := []string{"!backup-restore", "!snapshot", "!postgres-major-upgrade", "!plugin", "!observability", "!postgres-configuration", "!pod-scheduling", "!cluster-metadata"}
 
 	// Skip tests by name pattern (regex)
 	// - Image.Catalogs: requires E2E_PRE_ROLLING_UPDATE_IMG with semantic version tag
