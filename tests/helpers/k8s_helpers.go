@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/k8s"
-	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -184,17 +183,20 @@ func CreateSecret(t *testing.T, opts *k8s.KubectlOptions, name string, data map[
 func WaitForPodsReady(t *testing.T, opts *k8s.KubectlOptions, labelSelector string, expectedCount int, retries int) error {
 	t.Helper()
 
+	var lastErr error
 	for i := 0; i < retries; i++ {
 		clientset, err := getClientset(opts.ConfigPath)
 		if err != nil {
-			return err
+			lastErr = err
+			continue
 		}
 
 		pods, err := clientset.CoreV1().Pods(opts.Namespace).List(context.Background(), metav1.ListOptions{
 			LabelSelector: labelSelector,
 		})
 		if err != nil {
-			require.NoError(t, err)
+			lastErr = err
+			continue
 		}
 
 		if len(pods.Items) < expectedCount {
@@ -213,6 +215,9 @@ func WaitForPodsReady(t *testing.T, opts *k8s.KubectlOptions, labelSelector stri
 		}
 	}
 
+	if lastErr != nil {
+		return fmt.Errorf("timeout waiting for %d pods to be ready: %w", expectedCount, lastErr)
+	}
 	return fmt.Errorf("timeout waiting for %d pods to be ready", expectedCount)
 }
 

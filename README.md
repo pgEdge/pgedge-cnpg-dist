@@ -43,7 +43,7 @@ make test-operator
 make test-smoke
 
 # Run comprehensive tests (more extensive E2E tests)
-make test-smoke
+make test-comprehensive
 ```
 
 ## Building Operator & Plugin Images
