@@ -60,8 +60,9 @@ Location: manifests/cloudnative-pg/
 Trademark Notices
 ================================================================================
 
-CloudNativePG is a Cloud Native Computing Foundation (CNCF) Sandbox project.
-The CloudNativePG name and logos are trademarks of The CloudNativePG Authors.
+CloudNativePG is a Cloud Native Computing Foundation (CNCF) Sandbox project,
+established as CloudNativePG a Series of LF Projects, LLC. The CloudNativePG
+name and logos are trademarks of The Linux Foundation.
 https://cloudnative-pg.io/
 
 Postgres and PostgreSQL are trademarks or registered trademarks of the
@@ -77,7 +78,7 @@ Disclaimer
 ================================================================================
 
 This project is not affiliated with, endorsed by, or sponsored by:
-- The CloudNativePG project or The CloudNativePG Authors
+- The CloudNativePG project
 - The Cloud Native Computing Foundation (CNCF)
 - The Linux Foundation
 - The PostgreSQL Global Development Group

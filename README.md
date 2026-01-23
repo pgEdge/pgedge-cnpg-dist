@@ -152,12 +152,6 @@ This repository contains components under different licenses:
 | CloudNativePG charts | [Apache License 2.0](charts/cloudnative-pg/v0.27.0/LICENSE) | `charts/` |
 | CloudNativePG manifests | [Apache License 2.0](manifests/cloudnative-pg/v1.28.0/LICENSE) | `manifests/` |
 
-See [NOTICE](NOTICE) for full attribution details.
-
-## Trademarks
-
-- **CloudNativePG** is a [CNCF Sandbox project](https://www.cncf.io/projects/cloudnativepg/). The CloudNativePG name and logos are trademarks of The CloudNativePG Authors.
-- **Postgres** and **PostgreSQL** are trademarks or registered trademarks of the [PostgreSQL Community Association of Canada](https://www.postgresql.org/about/policies/trademarks/).
-- **CNCF** and **Cloud Native Computing Foundation** are registered trademarks of [The Linux Foundation](https://www.linuxfoundation.org/legal/trademarks).
+See [NOTICE](NOTICE) for full attribution and trademark details.
 
 This project is not affiliated with, endorsed by, or sponsored by CloudNativePG, the Cloud Native Computing Foundation, or the PostgreSQL Global Development Group.
