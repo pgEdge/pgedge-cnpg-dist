@@ -7,7 +7,8 @@ Helm charts, manifests, container images, and testing infrastructure for running
 This repository provides:
 
 - **Rebuilt Operator Images**: CloudNativePG operator images rebuilt from source and published to pgEdge's container registry
-- **Configured Helm Charts & Manifests**: Redistributes CloudNativePG charts and manifests with modifications to use pgEdge-built operator images
+- **Configured Helm Charts, Manifests, and Plugins**: Redistributes CloudNativePG charts, manifests, and plugins with modifications to use pgEdge-built operator images
+- **kubectl Plugin**: The `kubectl-cnpg` plugin is built from source, configured for pgEdge-built operator images, and distributed via Krew
 - **End-to-End Testing**: Automated validation against the upstream CloudNativePG test suite with pgEdge Enterprise Postgres images
 - **Multi-Version Support**: Testing across PostgreSQL versions, Kubernetes distributions, and operator versions
 
@@ -27,6 +28,16 @@ We rebuild and publish CloudNativePG operator images from upstream source:
 | Barman Cloud Plugin | [cloudnative-pg/plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud) | `ghcr.io/pgedge/plugin-barman-cloud-*` |
 
 Images are built via GitHub Actions workflows from upstream source tags without modification.
+
+## kubectl Plugin
+
+We build and distribute the `kubectl-cnpg` plugin from upstream CloudNativePG source with modifications to use pgEdge operator images as defaults.
+
+| Component | Source | Distribution |
+|-----------|--------|--------------|
+| kubectl-cnpg | [cloudnative-pg/cloudnative-pg](https://github.com/cloudnative-pg/cloudnative-pg) | [GitHub Releases](https://github.com/pgEdge/pgedge-cnpg-dist/releases) |
+
+**Modification:** Default operator image references changed to `ghcr.io/pgedge/cloudnative-pg`.
 
 ## Helm Charts
 

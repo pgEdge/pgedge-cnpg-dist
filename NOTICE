@@ -56,6 +56,18 @@ Location: manifests/cloudnative-pg/
              a Series of LF Projects, LLC.
   Modification: Operator image references changed to ghcr.io/pgedge/ registry.
 
+kubectl Plugin
+--------------
+We build and distribute the kubectl-cnpg plugin from upstream CloudNativePG
+source with modifications to use pgEdge-built operator images as defaults.
+
+kubectl-cnpg
+  Source: https://github.com/cloudnative-pg/cloudnative-pg
+  License: Apache License 2.0
+  Copyright: Contributors to CloudNativePG, established as CloudNativePG
+             a Series of LF Projects, LLC.
+  Modification: Default operator image references changed to ghcr.io/pgedge/ registry.
+
 ================================================================================
 Trademark Notices
 ================================================================================
