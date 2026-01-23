@@ -1,0 +1,102 @@
+pgEdge Enterprise Postgres for Kubernetes
+Copyright (c) 2025-2026, pgEdge, Inc.
+
+This repository contains components derived from CloudNativePG projects,
+licensed under the Apache License, Version 2.0.
+
+================================================================================
+Third-Party Components
+================================================================================
+
+Container Images
+----------------
+We rebuild and publish CloudNativePG operator images from upstream source
+without modification.
+
+CloudNativePG Operator
+  Source: https://github.com/cloudnative-pg/cloudnative-pg
+  License: Apache License 2.0
+  Copyright: Contributors to CloudNativePG, established as CloudNativePG
+             a Series of LF Projects, LLC.
+
+Barman Cloud Plugin
+  Source: https://github.com/cloudnative-pg/plugin-barman-cloud
+  License: Apache License 2.0
+  Copyright: Contributors to CloudNativePG, established as CloudNativePG
+             a Series of LF Projects, LLC.
+
+Helm Charts
+-----------
+We redistribute CloudNativePG Helm charts with modifications to use
+pgEdge-built operator images.
+
+Location: charts/cloudnative-pg/
+  Source: https://github.com/cloudnative-pg/charts
+  License: Apache License 2.0
+  Copyright: Contributors to CloudNativePG, established as CloudNativePG
+             a Series of LF Projects, LLC.
+  Modification: Default image references changed to ghcr.io/pgedge/ registry.
+
+Location: charts/plugin-barman-cloud/
+  Source: https://github.com/cloudnative-pg/plugin-barman-cloud
+  License: Apache License 2.0
+  Copyright: Contributors to CloudNativePG, established as CloudNativePG
+             a Series of LF Projects, LLC.
+  Modification: Default image references changed to ghcr.io/pgedge/ registry.
+
+Manifests
+---------
+We redistribute CloudNativePG installation manifests with modifications to use
+pgEdge-built operator images.
+
+Location: manifests/cloudnative-pg/
+  Source: https://github.com/cloudnative-pg/cloudnative-pg
+  License: Apache License 2.0
+  Copyright: Contributors to CloudNativePG, established as CloudNativePG
+             a Series of LF Projects, LLC.
+  Modification: Operator image references changed to ghcr.io/pgedge/ registry.
+
+================================================================================
+Trademark Notices
+================================================================================
+
+CloudNativePG is a Cloud Native Computing Foundation (CNCF) Sandbox project,
+established as CloudNativePG a Series of LF Projects, LLC. The CloudNativePG
+name and logos are trademarks of The Linux Foundation.
+https://cloudnative-pg.io/
+
+Postgres and PostgreSQL are trademarks or registered trademarks of the
+PostgreSQL Community Association of Canada, and used with their permission.
+https://www.postgresql.org/about/policies/trademarks/
+
+CNCF, Cloud Native Computing Foundation, Kubernetes, and the CNCF logo are
+registered trademarks of The Linux Foundation.
+https://www.linuxfoundation.org/legal/trademarks
+
+================================================================================
+Disclaimer
+================================================================================
+
+This project is not affiliated with, endorsed by, or sponsored by:
+- The CloudNativePG project
+- The Cloud Native Computing Foundation (CNCF)
+- The Linux Foundation
+- The PostgreSQL Global Development Group
+
+================================================================================
+Apache License 2.0 Notice
+================================================================================
+
+The CloudNativePG-derived components in this repository are licensed under
+the Apache License, Version 2.0. As required by Section 4(b) of the Apache
+License, modified files carry notices stating that they were changed.
+
+You may obtain a copy of the License at:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

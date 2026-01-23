@@ -3,9 +3,9 @@ package tests
 import (
 	"testing"
 
-	"github.com/pgedge/cnpg-build/tests/config"
-	"github.com/pgedge/cnpg-build/tests/helpers"
-	"github.com/pgedge/cnpg-build/tests/providers"
+	"github.com/pgedge/pgedge-cnpg-dist/tests/config"
+	"github.com/pgedge/pgedge-cnpg-dist/tests/helpers"
+	"github.com/pgedge/pgedge-cnpg-dist/tests/providers"
 	"github.com/stretchr/testify/require"
 )
 
