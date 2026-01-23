@@ -16,6 +16,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+# MODIFIED by pgEdge, Inc. (2025-2026)
+# Change: image.repository default changed to ghcr.io/pgedge/cloudnative-pg
+#
 # Default values for CloudNativePG.
 # This is a YAML-formatted file.
 # Please declare variables to be passed to your templates.
