@@ -1,4 +1,4 @@
-module github.com/pgedge/cnpg-build
+module github.com/pgedge/pgedge-cnpg-dist
 
 go 1.23.0
 

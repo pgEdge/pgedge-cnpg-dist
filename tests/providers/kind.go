@@ -11,7 +11,7 @@ import (
 
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/retry"
-	"github.com/pgedge/cnpg-build/tests/config"
+	"github.com/pgedge/pgedge-cnpg-dist/tests/config"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cmd"
