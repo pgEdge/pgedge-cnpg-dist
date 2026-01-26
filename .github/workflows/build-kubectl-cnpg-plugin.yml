@@ -385,13 +385,20 @@ jobs:
 
             These modifications ensure the plugin uses pgEdge-built and supported operator images by default.
 
-            ## License
+            ## License & Attribution
 
             This distribution includes LICENSE and NOTICE files in each archive as required by the Apache License 2.0.
-            The NOTICE file documents all modifications made to the original work.
 
             - **License:** Apache License 2.0
             - **Original Copyright:** Contributors to CloudNativePG, established as CloudNativePG a Series of LF Projects, LLC.
+
+            Each archive contains:
+            - `LICENSE` - Apache License 2.0 from upstream CloudNativePG
+            - `NOTICE` - Documents all modifications made by pgEdge as required by Apache 2.0 Section 4(b), including:
+              - Copyright attribution to both pgEdge and CloudNativePG
+              - Documentation of default operator image reference changes
+              - Build metadata and version injection details
+              - Trademark notices
 
             ## Installation
             
