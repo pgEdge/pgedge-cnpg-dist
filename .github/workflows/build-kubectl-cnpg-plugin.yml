@@ -484,6 +484,10 @@ jobs:
           SOURCE_REF="${{ github.event.inputs.ref }}"
           
           cat > krew-manifest.yaml <<EOF
+          # This file is derived from the CloudNativePG project's krew plugin manifest.
+          # Modified by pgEdge, Inc. to distribute pgEdge-built binaries.
+          # Original source: https://github.com/cloudnative-pg/cloudnative-pg
+          # License: Apache License 2.0
           apiVersion: krew.googlecontainertools.github.com/v1alpha2
           kind: Plugin
           metadata:
