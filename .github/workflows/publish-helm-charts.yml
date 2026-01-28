@@ -236,7 +236,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.check_release.outputs.should_release == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.metadata.outputs.release_tag }}
           name: "${{ steps.metadata.outputs.chart_name }}-v${{ steps.metadata.outputs.chart_version }}"
@@ -342,6 +342,8 @@ jobs:
       github.event.inputs.update_index == 'true' &&
       needs.package-sign-release.outputs.released == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
       - name: Trigger index update workflow
         env:

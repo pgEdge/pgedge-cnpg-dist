@@ -51,8 +51,8 @@ jobs:
           echo "COLLECTING CHART RELEASES"
           echo "================================================"
 
-          # Get all releases and filter for chart releases
-          RELEASES=$(gh release list --limit 100 --json tagName,name --jq '.[].tagName')
+          # Get all releases using paginated API to ensure none are missed
+          RELEASES=$(gh api --paginate repos/${{ github.repository }}/releases --jq '.[].tag_name')
 
           for tag in $RELEASES; do
             # Check if this is a chart release (cloudnative-pg-vX.Y.Z or plugin-barman-cloud-vX.Y.Z)
