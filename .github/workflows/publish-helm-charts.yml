@@ -48,14 +48,17 @@ jobs:
 
       - name: Validate chart exists
         id: validate
+        env:
+          INPUT_CHART_NAME: ${{ github.event.inputs.chart_name }}
+          INPUT_CHART_VERSION: ${{ github.event.inputs.chart_version }}
         run: |
-          CHART_PATH="charts/${{ github.event.inputs.chart_name }}/${{ github.event.inputs.chart_version }}"
+          CHART_PATH="charts/${INPUT_CHART_NAME}/${INPUT_CHART_VERSION}"
 
           if [ ! -d "$CHART_PATH" ]; then
             echo "::error::Chart directory does not exist: $CHART_PATH"
             echo ""
-            echo "Available versions for ${{ github.event.inputs.chart_name }}:"
-            ls -la "charts/${{ github.event.inputs.chart_name }}/" 2>/dev/null || echo "Chart directory not found"
+            echo "Available versions for ${INPUT_CHART_NAME}:"
+            ls -la "charts/${INPUT_CHART_NAME}/" 2>/dev/null || echo "Chart directory not found"
             exit 1
           fi
 
@@ -100,12 +103,13 @@ jobs:
         id: check_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SKIP_EXISTING: ${{ github.event.inputs.skip_existing }}
         run: |
           RELEASE_TAG="${{ steps.metadata.outputs.release_tag }}"
 
           if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
             echo "Release $RELEASE_TAG already exists"
-            if [ "${{ github.event.inputs.skip_existing }}" == "true" ]; then
+            if [ "$INPUT_SKIP_EXISTING" == "true" ]; then
               echo "::warning::Skipping - release already exists and skip_existing is enabled"
               echo "should_release=false" >> $GITHUB_OUTPUT
             else
