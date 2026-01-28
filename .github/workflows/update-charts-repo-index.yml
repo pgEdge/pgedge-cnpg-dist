@@ -7,12 +7,6 @@ on:
 
   # Manual trigger
   workflow_dispatch:
-    inputs:
-      rebuild_full_index:
-        description: 'Rebuild full index from all chart releases'
-        required: false
-        type: boolean
-        default: true
 
 env:
   ORGANIZATION: ${{ github.repository_owner }}
@@ -60,11 +54,16 @@ jobs:
               echo "📦 Processing release: $tag"
 
               # Download .tgz and .prov files
-              gh release download "$tag" \
+              if output=$(gh release download "$tag" \
                 --pattern "*.tgz" \
                 --pattern "*.tgz.prov" \
                 --dir charts-download \
-                --clobber 2>/dev/null && echo "   ✅ Downloaded" || echo "   ⚠️ Warning: Could not download assets"
+                --clobber 2>&1); then
+                echo "   ✅ Downloaded"
+              else
+                echo "   ⚠️ Warning: Could not download assets"
+                echo "   Details: $output"
+              fi
             fi
           done
 
@@ -113,11 +112,19 @@ jobs:
           python3 << 'PYEOF'
           import yaml
           import os
+          import sys
 
           base_url = os.environ.get('BASE_URL', '')
 
-          with open('index.yaml', 'r') as f:
-              index = yaml.safe_load(f)
+          try:
+              with open('index.yaml', 'r') as f:
+                  index = yaml.safe_load(f)
+          except FileNotFoundError:
+              print("❌ Error: index.yaml not found. Did 'helm repo index' fail?")
+              sys.exit(1)
+          except yaml.YAMLError as e:
+              print(f"❌ Error: Failed to parse index.yaml: {e}")
+              sys.exit(1)
 
           for chart_name, versions in index.get('entries', {}).items():
               for version_entry in versions:
@@ -216,26 +223,31 @@ jobs:
 
             console.log(`Creating branch: ${branchName}`);
 
-            // Delete branch if it exists (for reruns)
+            // Create or update branch from default branch
+            // Using update instead of delete preserves existing PRs and review comments
             try {
-              await github.rest.git.deleteRef({
+              await github.rest.git.createRef({
                 owner,
                 repo,
-                ref: `heads/${branchName}`
+                ref: `refs/heads/${branchName}`,
+                sha: baseSha
               });
-              console.log('  Deleted existing branch');
+              console.log(`✅ Created branch: ${branchName}`);
             } catch (error) {
-              // Branch doesn't exist, that's fine
+              if (error.status === 422) {
+                // Branch exists, update it
+                await github.rest.git.updateRef({
+                  owner,
+                  repo,
+                  ref: `heads/${branchName}`,
+                  sha: baseSha,
+                  force: true
+                });
+                console.log(`✅ Updated existing branch: ${branchName}`);
+              } else {
+                throw error;
+              }
             }
-
-            // Create new branch from default branch
-            await github.rest.git.createRef({
-              owner,
-              repo,
-              ref: `refs/heads/${branchName}`,
-              sha: baseSha
-            });
-            console.log(`✅ Created branch: ${branchName}`);
 
             // Check if index.yaml exists (to get SHA for update)
             let currentIndexSha;
