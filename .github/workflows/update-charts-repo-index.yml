@@ -90,6 +90,9 @@ jobs:
         run: |
           cd charts-download
 
+          # Install PyYAML for the Python script below
+          python3 -m pip install --user pyyaml
+
           # Base URL for chart downloads - points to GitHub releases
           BASE_URL="https://github.com/${{ env.SOURCE_REPO }}/releases/download"
 
