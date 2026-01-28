@@ -1,0 +1,355 @@
+name: Publish Helm Charts
+
+on:
+  workflow_dispatch:
+    inputs:
+      chart_name:
+        description: 'Chart to publish'
+        required: true
+        type: choice
+        options:
+          - 'cloudnative-pg'
+          - 'plugin-barman-cloud'
+      chart_version:
+        description: 'Chart version directory (e.g., v0.27.0)'
+        required: true
+      skip_existing:
+        description: 'Skip if release already exists'
+        required: false
+        type: boolean
+        default: true
+      update_index:
+        description: 'Trigger index update after release'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  ORGANIZATION: ${{ github.repository_owner }}
+
+jobs:
+  package-sign-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      chart_name: ${{ steps.metadata.outputs.chart_name }}
+      chart_version: ${{ steps.metadata.outputs.chart_version }}
+      release_tag: ${{ steps.metadata.outputs.release_tag }}
+      released: ${{ steps.check_release.outputs.should_release }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.16.2'
+
+      - name: Validate chart exists
+        id: validate
+        run: |
+          CHART_PATH="charts/${{ github.event.inputs.chart_name }}/${{ github.event.inputs.chart_version }}"
+
+          if [ ! -d "$CHART_PATH" ]; then
+            echo "::error::Chart directory does not exist: $CHART_PATH"
+            echo ""
+            echo "Available versions for ${{ github.event.inputs.chart_name }}:"
+            ls -la "charts/${{ github.event.inputs.chart_name }}/" 2>/dev/null || echo "Chart directory not found"
+            exit 1
+          fi
+
+          if [ ! -f "$CHART_PATH/Chart.yaml" ]; then
+            echo "::error::Chart.yaml not found in $CHART_PATH"
+            exit 1
+          fi
+
+          echo "chart_path=$CHART_PATH" >> $GITHUB_OUTPUT
+          echo "✅ Chart found at: $CHART_PATH"
+
+      - name: Extract chart metadata
+        id: metadata
+        run: |
+          CHART_PATH="${{ steps.validate.outputs.chart_path }}"
+
+          CHART_NAME=$(yq -r '.name' "$CHART_PATH/Chart.yaml")
+          CHART_VERSION=$(yq -r '.version' "$CHART_PATH/Chart.yaml")
+          APP_VERSION=$(yq -r '.appVersion' "$CHART_PATH/Chart.yaml")
+          CHART_DESCRIPTION=$(yq -r '.description // "Helm chart"' "$CHART_PATH/Chart.yaml")
+
+          echo "================================================"
+          echo "CHART METADATA"
+          echo "================================================"
+          echo "Chart Name: $CHART_NAME"
+          echo "Chart Version: $CHART_VERSION"
+          echo "App Version: $APP_VERSION"
+          echo "Description: $CHART_DESCRIPTION"
+          echo "================================================"
+
+          echo "chart_name=$CHART_NAME" >> $GITHUB_OUTPUT
+          echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
+          echo "chart_description=$CHART_DESCRIPTION" >> $GITHUB_OUTPUT
+
+          # Release tag follows CNPG convention: chartname-vX.Y.Z
+          RELEASE_TAG="${CHART_NAME}-v${CHART_VERSION}"
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "Release Tag: $RELEASE_TAG"
+
+      - name: Check if release exists
+        id: check_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="${{ steps.metadata.outputs.release_tag }}"
+
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists"
+            if [ "${{ github.event.inputs.skip_existing }}" == "true" ]; then
+              echo "::warning::Skipping - release already exists and skip_existing is enabled"
+              echo "should_release=false" >> $GITHUB_OUTPUT
+            else
+              echo "::error::Release $RELEASE_TAG already exists. Delete it first or enable skip_existing."
+              exit 1
+            fi
+          else
+            echo "Release $RELEASE_TAG does not exist, proceeding..."
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Import GPG key
+        if: steps.check_release.outputs.should_release == 'true'
+        id: gpg
+        run: |
+          # Create GPG home directory with secure permissions
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+
+          # Configure GPG for non-interactive use
+          echo "batch" >> ~/.gnupg/gpg.conf
+          echo "no-tty" >> ~/.gnupg/gpg.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg-agent.conf
+
+          # Import the GPG private key from secret
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --batch --import
+
+          # Get the key ID
+          KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | head -1 | awk '{print $2}' | cut -d'/' -f2)
+          echo "key_id=$KEY_ID" >> $GITHUB_OUTPUT
+
+          # Get the key UID (name/email) for helm signing
+          KEY_UID=$(gpg --list-secret-keys --keyid-format LONG | grep uid | head -1 | sed 's/.*] //')
+          echo "key_uid=$KEY_UID" >> $GITHUB_OUTPUT
+
+          echo "✅ GPG Key imported"
+          echo "   Key ID: $KEY_ID"
+          echo "   Key UID: $KEY_UID"
+
+          # Export the keyring in legacy format for Helm
+          gpg --export-secret-keys > ~/.gnupg/secring.gpg
+          chmod 600 ~/.gnupg/secring.gpg
+
+      - name: Update chart dependencies
+        if: steps.check_release.outputs.should_release == 'true'
+        run: |
+          CHART_PATH="${{ steps.validate.outputs.chart_path }}"
+
+          if [ -f "$CHART_PATH/Chart.lock" ]; then
+            echo "Updating chart dependencies..."
+            helm dependency update "$CHART_PATH"
+          else
+            echo "No Chart.lock found, skipping dependency update"
+          fi
+
+      - name: Package and sign Helm chart
+        if: steps.check_release.outputs.should_release == 'true'
+        id: package
+        run: |
+          CHART_PATH="${{ steps.validate.outputs.chart_path }}"
+          CHART_NAME="${{ steps.metadata.outputs.chart_name }}"
+          CHART_VERSION="${{ steps.metadata.outputs.chart_version }}"
+          KEY_UID="${{ steps.gpg.outputs.key_uid }}"
+
+          mkdir -p dist
+
+          echo "Packaging and signing chart..."
+          echo "Chart: $CHART_NAME-$CHART_VERSION"
+          echo "Signing with key: $KEY_UID"
+
+          # Package with signature
+          helm package "$CHART_PATH" \
+            --destination dist/ \
+            --sign \
+            --key "$KEY_UID" \
+            --keyring ~/.gnupg/secring.gpg
+
+          PACKAGE_FILE="${CHART_NAME}-${CHART_VERSION}.tgz"
+          PROV_FILE="${CHART_NAME}-${CHART_VERSION}.tgz.prov"
+
+          if [ ! -f "dist/$PACKAGE_FILE" ]; then
+            echo "::error::Package file not created: dist/$PACKAGE_FILE"
+            ls -la dist/
+            exit 1
+          fi
+
+          if [ ! -f "dist/$PROV_FILE" ]; then
+            echo "::error::Provenance file not created: dist/$PROV_FILE"
+            ls -la dist/
+            exit 1
+          fi
+
+          echo "✅ Chart packaged and signed"
+          ls -lh dist/
+
+          echo "package_file=$PACKAGE_FILE" >> $GITHUB_OUTPUT
+          echo "prov_file=$PROV_FILE" >> $GITHUB_OUTPUT
+        env:
+          HELM_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Verify chart signature
+        if: steps.check_release.outputs.should_release == 'true'
+        run: |
+          CHART_NAME="${{ steps.metadata.outputs.chart_name }}"
+          CHART_VERSION="${{ steps.metadata.outputs.chart_version }}"
+
+          # Export public key for users to verify
+          gpg --export --armor > dist/pubkey.asc
+
+          echo "Verifying chart signature..."
+          helm verify "dist/${CHART_NAME}-${CHART_VERSION}.tgz" --keyring ~/.gnupg/secring.gpg
+
+          echo "✅ Signature verified successfully"
+
+      - name: Generate checksums
+        if: steps.check_release.outputs.should_release == 'true'
+        run: |
+          cd dist
+          sha256sum *.tgz *.prov pubkey.asc > checksums.txt
+          echo "Checksums:"
+          cat checksums.txt
+
+      - name: Display provenance file
+        if: steps.check_release.outputs.should_release == 'true'
+        run: |
+          echo "=== Provenance File Contents ==="
+          cat "dist/${{ steps.package.outputs.prov_file }}"
+
+      - name: Create GitHub Release
+        if: steps.check_release.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.metadata.outputs.release_tag }}
+          name: "${{ steps.metadata.outputs.chart_name }}-v${{ steps.metadata.outputs.chart_version }}"
+          body: |
+            ## Helm Chart Release
+
+            | Field | Value |
+            |-------|-------|
+            | **Chart** | `${{ steps.metadata.outputs.chart_name }}` |
+            | **Version** | `${{ steps.metadata.outputs.chart_version }}` |
+            | **App Version** | `${{ steps.metadata.outputs.app_version }}` |
+
+            ### Description
+
+            ${{ steps.metadata.outputs.chart_description }}
+
+            ### Provenance & Verification
+
+            This chart is signed with GPG. The `.prov` file contains the cryptographic signature.
+
+            ```bash
+            # Import the pgEdge public key
+            curl -sL https://github.com/${{ github.repository }}/releases/download/${{ steps.metadata.outputs.release_tag }}/pubkey.asc | gpg --import
+
+            # Download and verify
+            curl -sLO https://github.com/${{ github.repository }}/releases/download/${{ steps.metadata.outputs.release_tag }}/${{ steps.metadata.outputs.chart_name }}-${{ steps.metadata.outputs.chart_version }}.tgz
+            curl -sLO https://github.com/${{ github.repository }}/releases/download/${{ steps.metadata.outputs.release_tag }}/${{ steps.metadata.outputs.chart_name }}-${{ steps.metadata.outputs.chart_version }}.tgz.prov
+            helm verify ${{ steps.metadata.outputs.chart_name }}-${{ steps.metadata.outputs.chart_version }}.tgz
+            ```
+
+            ### Installation
+
+            ```bash
+            # Add the pgEdge Helm repository
+            helm repo add pgedge https://${{ env.ORGANIZATION }}.github.io/charts
+            helm repo update
+
+            # Install the chart
+            helm install my-release pgedge/${{ steps.metadata.outputs.chart_name }} --version ${{ steps.metadata.outputs.chart_version }}
+            ```
+
+            ### Source
+
+            This chart is based on the upstream [CloudNativePG](https://cloudnative-pg.io/) chart with the following modifications:
+            - Default container image references updated to use pgEdge registry (`ghcr.io/pgedge/`)
+
+            ### Assets
+
+            | File | Description |
+            |------|-------------|
+            | `${{ steps.metadata.outputs.chart_name }}-${{ steps.metadata.outputs.chart_version }}.tgz` | Helm chart package |
+            | `${{ steps.metadata.outputs.chart_name }}-${{ steps.metadata.outputs.chart_version }}.tgz.prov` | Provenance file (GPG signature) |
+            | `pubkey.asc` | GPG public key |
+            | `checksums.txt` | SHA256 checksums |
+
+            ---
+            *Release created by the Helm chart publishing workflow.*
+          files: |
+            dist/*.tgz
+            dist/*.prov
+            dist/pubkey.asc
+            dist/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Secure cleanup
+        if: always()
+        run: |
+          # Securely delete GPG keys
+          if [ -f ~/.gnupg/secring.gpg ]; then
+            shred -u ~/.gnupg/secring.gpg 2>/dev/null || rm -f ~/.gnupg/secring.gpg
+          fi
+          rm -rf ~/.gnupg
+
+      - name: Summary
+        run: |
+          echo "## Helm Chart Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check_release.outputs.should_release }}" == "false" ]; then
+            echo "⏭️ **Release skipped** - ${{ steps.metadata.outputs.release_tag }} already exists" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **Release created successfully**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Chart Details" >> $GITHUB_STEP_SUMMARY
+            echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Chart | \`${{ steps.metadata.outputs.chart_name }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| Version | \`${{ steps.metadata.outputs.chart_version }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| App Version | \`${{ steps.metadata.outputs.app_version }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| Release Tag | \`${{ steps.metadata.outputs.release_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Release Assets" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ steps.package.outputs.package_file }}\` - Chart package" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ steps.package.outputs.prov_file }}\` - Provenance file" >> $GITHUB_STEP_SUMMARY
+            echo "- \`pubkey.asc\` - GPG public key" >> $GITHUB_STEP_SUMMARY
+            echo "- \`checksums.txt\` - SHA256 checksums" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  trigger-index-update:
+    needs: package-sign-release
+    if: |
+      github.event.inputs.update_index == 'true' &&
+      needs.package-sign-release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger index update workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Triggering index update workflow..."
+          gh workflow run update-charts-repo-index.yml \
+            --repo ${{ github.repository }} \
+            -f rebuild_full_index=true
+
+          echo "✅ Index update workflow triggered"

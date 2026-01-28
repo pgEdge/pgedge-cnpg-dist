@@ -1,0 +1,355 @@
+name: Update Charts Repository Index
+
+on:
+  # Trigger when a chart release is published
+  release:
+    types: [published]
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      rebuild_full_index:
+        description: 'Rebuild full index from all chart releases'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  ORGANIZATION: ${{ github.repository_owner }}
+  CHARTS_REPO_NAME: ${{ vars.CHARTS_REPO_NAME || 'charts' }}
+  SOURCE_REPO: ${{ github.repository }}
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Only run for chart releases (tagged like chartname-vX.Y.Z)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'release' && (
+        startsWith(github.event.release.tag_name, 'cloudnative-pg-v') ||
+        startsWith(github.event.release.tag_name, 'plugin-barman-cloud-v')
+      ))
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.16.2'
+
+      - name: Collect all chart releases
+        id: collect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p charts-download
+
+          echo "================================================"
+          echo "COLLECTING CHART RELEASES"
+          echo "================================================"
+
+          # Get all releases and filter for chart releases
+          RELEASES=$(gh release list --limit 100 --json tagName,name --jq '.[].tagName')
+
+          for tag in $RELEASES; do
+            # Check if this is a chart release (cloudnative-pg-vX.Y.Z or plugin-barman-cloud-vX.Y.Z)
+            if [[ "$tag" =~ ^(cloudnative-pg|plugin-barman-cloud)-v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              echo "📦 Processing release: $tag"
+
+              # Download .tgz and .prov files
+              gh release download "$tag" \
+                --pattern "*.tgz" \
+                --pattern "*.tgz.prov" \
+                --dir charts-download \
+                --clobber 2>/dev/null && echo "   ✅ Downloaded" || echo "   ⚠️ Warning: Could not download assets"
+            fi
+          done
+
+          echo ""
+          echo "================================================"
+          echo "DOWNLOADED CHARTS"
+          echo "================================================"
+          ls -la charts-download/ || echo "No files downloaded"
+
+          # Count charts
+          CHART_COUNT=$(ls charts-download/*.tgz 2>/dev/null | wc -l | tr -d ' ')
+          echo ""
+          echo "Total chart packages: $CHART_COUNT"
+          echo "chart_count=$CHART_COUNT" >> $GITHUB_OUTPUT
+
+          if [ "$CHART_COUNT" -eq "0" ]; then
+            echo "::error::No chart packages found in releases. Please publish chart releases first."
+            exit 1
+          fi
+
+      - name: Generate Helm repository index
+        id: index
+        run: |
+          cd charts-download
+
+          # Base URL for chart downloads - points to GitHub releases
+          BASE_URL="https://github.com/${{ env.SOURCE_REPO }}/releases/download"
+
+          echo "================================================"
+          echo "GENERATING INDEX"
+          echo "================================================"
+          echo "Base URL: $BASE_URL"
+          echo ""
+
+          # Generate initial index.yaml
+          helm repo index . --url "$BASE_URL"
+
+          # Fix URLs to point to correct release tag directories
+          # helm repo index puts all files in the same directory, but our releases
+          # have each chart in its own tag directory
+          echo "Fixing chart URLs to point to release tags..."
+
+          python3 << 'PYEOF'
+          import yaml
+          import os
+
+          base_url = os.environ.get('BASE_URL', '')
+
+          with open('index.yaml', 'r') as f:
+              index = yaml.safe_load(f)
+
+          for chart_name, versions in index.get('entries', {}).items():
+              for version_entry in versions:
+                  chart_version = version_entry.get('version', '')
+                  # Construct the correct URL: base_url/chartname-vversion/chartname-version.tgz
+                  filename = f"{chart_name}-{chart_version}.tgz"
+                  release_tag = f"{chart_name}-v{chart_version}"
+                  correct_url = f"{base_url}/{release_tag}/{filename}"
+                  version_entry['urls'] = [correct_url]
+                  print(f"  {chart_name}-{chart_version}: {correct_url}")
+
+          with open('index.yaml', 'w') as f:
+              yaml.dump(index, f, default_flow_style=False, sort_keys=False)
+
+          print("\n✅ URLs fixed successfully")
+          PYEOF
+
+          echo ""
+          echo "================================================"
+          echo "GENERATED INDEX.YAML"
+          echo "================================================"
+          cat index.yaml
+
+          # Copy to workspace
+          cp index.yaml $GITHUB_WORKSPACE/index.yaml
+        env:
+          BASE_URL: "https://github.com/${{ env.SOURCE_REPO }}/releases/download"
+
+      - name: Create PR to Charts Repository
+        id: create_pr
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.CHARTS_REPO_PAT }}
+          script: |
+            const fs = require('fs');
+
+            const organization = process.env.ORGANIZATION;
+            const chartsRepoName = process.env.CHARTS_REPO_NAME;
+            const chartsRepo = `${organization}/${chartsRepoName}`;
+            const sourceRepo = process.env.SOURCE_REPO;
+            const triggerEvent = '${{ github.event_name }}';
+            const releaseTag = '${{ github.event.release.tag_name }}' || 'manual-rebuild';
+            const chartCount = '${{ steps.collect.outputs.chart_count }}';
+
+            console.log('================================================');
+            console.log('CREATING PR TO CHARTS REPOSITORY');
+            console.log('================================================');
+            console.log(`Target repo: ${chartsRepo}`);
+            console.log(`Trigger: ${triggerEvent}`);
+            if (triggerEvent === 'release') {
+              console.log(`Release: ${releaseTag}`);
+            }
+            console.log('');
+
+            const [owner, repo] = chartsRepo.split('/');
+
+            // Read the generated index.yaml
+            const indexContent = fs.readFileSync('index.yaml', 'utf8');
+
+            // Get the default branch and base SHA
+            let defaultBranch;
+            let baseSha;
+            try {
+              const { data: repoData } = await github.rest.repos.get({
+                owner,
+                repo
+              });
+              defaultBranch = repoData.default_branch;
+              console.log(`Default branch: ${defaultBranch}`);
+
+              const { data: refData } = await github.rest.git.getRef({
+                owner,
+                repo,
+                ref: `heads/${defaultBranch}`
+              });
+              baseSha = refData.object.sha;
+              console.log(`Base SHA: ${baseSha}`);
+            } catch (error) {
+              console.log('');
+              console.log('❌ ERROR: Could not access charts repository');
+              console.log(`   Repository: ${chartsRepo}`);
+              console.log(`   Error: ${error.message}`);
+              console.log('');
+              console.log('Please ensure:');
+              console.log(`  1. Repository github.com/${chartsRepo} exists`);
+              console.log('  2. CHARTS_REPO_PAT secret is configured with repo access');
+              console.log('  3. The PAT has "repo" scope for private repos or "public_repo" for public');
+              throw error;
+            }
+
+            // Create branch name
+            const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const branchName = triggerEvent === 'release'
+              ? `update-index-${releaseTag}`
+              : `rebuild-index-${timestamp}`;
+
+            console.log(`Creating branch: ${branchName}`);
+
+            // Delete branch if it exists (for reruns)
+            try {
+              await github.rest.git.deleteRef({
+                owner,
+                repo,
+                ref: `heads/${branchName}`
+              });
+              console.log('  Deleted existing branch');
+            } catch (error) {
+              // Branch doesn't exist, that's fine
+            }
+
+            // Create new branch from default branch
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/heads/${branchName}`,
+              sha: baseSha
+            });
+            console.log(`✅ Created branch: ${branchName}`);
+
+            // Check if index.yaml exists (to get SHA for update)
+            let currentIndexSha;
+            try {
+              const { data: fileData } = await github.rest.repos.getContent({
+                owner,
+                repo,
+                path: 'index.yaml',
+                ref: defaultBranch
+              });
+              currentIndexSha = fileData.sha;
+              console.log('📝 Updating existing index.yaml');
+            } catch (error) {
+              console.log('📝 Creating new index.yaml');
+            }
+
+            // Create or update index.yaml
+            const commitMessage = triggerEvent === 'release'
+              ? `Update index.yaml for ${releaseTag}`
+              : `Rebuild index.yaml from all releases`;
+
+            await github.rest.repos.createOrUpdateFileContents({
+              owner,
+              repo,
+              path: 'index.yaml',
+              message: commitMessage,
+              content: Buffer.from(indexContent).toString('base64'),
+              branch: branchName,
+              sha: currentIndexSha
+            });
+            console.log('✅ Committed index.yaml');
+
+            // Build PR description
+            const prBody = `## Helm Repository Index Update
+
+            ### Trigger
+            - **Event:** \`${triggerEvent}\`
+            ${triggerEvent === 'release' ? `- **Release:** \`${releaseTag}\`` : '- **Type:** Full index rebuild'}
+
+            ### Summary
+            - **Charts indexed:** ${chartCount}
+            - **Source:** [${sourceRepo}](https://github.com/${sourceRepo})
+
+            ### Changes
+            This PR updates \`index.yaml\` to include all published chart releases from the source repository.
+
+            ### Usage
+            After merging, users can add the Helm repository:
+
+            \`\`\`bash
+            helm repo add pgedge https://${organization}.github.io/${chartsRepoName}
+            helm repo update
+            helm search repo pgedge/
+            \`\`\`
+
+            ### Available Charts
+            \`\`\`bash
+            # Install CloudNativePG operator
+            helm install cnpg pgedge/cloudnative-pg
+
+            # Install Barman Cloud plugin
+            helm install barman pgedge/plugin-barman-cloud
+            \`\`\`
+
+            ---
+            *This PR was automatically generated by the [update-charts-repo-index](https://github.com/${sourceRepo}/actions/workflows/update-charts-repo-index.yml) workflow.*`;
+
+            // Create pull request
+            const prTitle = triggerEvent === 'release'
+              ? `Update index for ${releaseTag}`
+              : `Rebuild Helm repository index`;
+
+            const { data: pr } = await github.rest.pulls.create({
+              owner,
+              repo,
+              title: prTitle,
+              head: branchName,
+              base: defaultBranch,
+              body: prBody
+            });
+
+            console.log('');
+            console.log('================================================');
+            console.log('PR CREATED SUCCESSFULLY');
+            console.log('================================================');
+            console.log(`PR #${pr.number}: ${pr.html_url}`);
+
+            core.setOutput('pr_number', pr.number);
+            core.setOutput('pr_url', pr.html_url);
+        env:
+          ORGANIZATION: ${{ env.ORGANIZATION }}
+          CHARTS_REPO_NAME: ${{ env.CHARTS_REPO_NAME }}
+          SOURCE_REPO: ${{ env.SOURCE_REPO }}
+
+      - name: Summary
+        run: |
+          echo "## Charts Repository Index Update" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Trigger" >> $GITHUB_STEP_SUMMARY
+          echo "- **Event:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "- **Release:** \`${{ github.event.release.tag_name }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Charts Indexed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total:** ${{ steps.collect.outputs.chart_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### PR Created" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository:** \`${{ env.ORGANIZATION }}/${{ env.CHARTS_REPO_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR:** #${{ steps.create_pr.outputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ steps.create_pr.outputs.pr_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review and merge the PR in \`${{ env.ORGANIZATION }}/${{ env.CHARTS_REPO_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Ensure GitHub Pages is enabled (Settings → Pages → Deploy from branch: \`main\`)" >> $GITHUB_STEP_SUMMARY
+          echo "3. Users can then add the repo:" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "   helm repo add pgedge https://${{ env.ORGANIZATION }}.github.io/${{ env.CHARTS_REPO_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "   helm repo update" >> $GITHUB_STEP_SUMMARY
+          echo "   \`\`\`" >> $GITHUB_STEP_SUMMARY
