@@ -97,7 +97,11 @@ jobs:
           echo "chart_name=$CHART_NAME" >> $GITHUB_OUTPUT
           echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
           echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
-          echo "chart_description=$CHART_DESCRIPTION" >> $GITHUB_OUTPUT
+          {
+            echo 'chart_description<<EOF'
+            echo "$CHART_DESCRIPTION"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
 
           # Release tag follows CNPG convention: chartname-vX.Y.Z
           RELEASE_TAG="${CHART_NAME}-v${CHART_VERSION}"
