@@ -137,16 +137,29 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
           # Create GPG home directory with secure permissions
-          mkdir -p ~/.gnupg
-          chmod 700 ~/.gnupg
+          export GNUPGHOME="$(mktemp -d)"
+          chmod 700 "$GNUPGHOME"
 
-          # Configure GPG for non-interactive use
-          echo "batch" >> ~/.gnupg/gpg.conf
-          echo "no-tty" >> ~/.gnupg/gpg.conf
-          echo "pinentry-mode loopback" >> ~/.gnupg/gpg-agent.conf
+          # Configure GPG for non-interactive CI use
+          cat > "$GNUPGHOME/gpg.conf" << EOF
+          batch
+          no-tty
+          EOF
 
-          # Import the GPG private key from secret
-          echo "$GPG_PRIVATE_KEY" | base64 -d | gpg --batch --import
+          cat > "$GNUPGHOME/gpg-agent.conf" << EOF
+          default-cache-ttl 7200
+          EOF
+
+          chmod 600 "$GNUPGHOME/gpg.conf" "$GNUPGHOME/gpg-agent.conf"
+
+          # Start gpg-agent in this new GNUPGHOME
+          gpgconf --launch gpg-agent
+
+          # Import the GPG private key
+          echo "$GPG_PRIVATE_KEY" | base64 -d | gpg --batch --yes --import
+
+          # Save GNUPGHOME for subsequent steps
+          echo "GNUPGHOME=$GNUPGHOME" >> $GITHUB_ENV
 
           # Get the key ID
           KEY_ID=$(gpg --list-secret-keys --keyid-format LONG --with-colons | awk -F: '/^sec:/ {print $5; exit}')
@@ -161,8 +174,8 @@ jobs:
           echo "   Key UID: $KEY_UID"
 
           # Export the keyring in legacy format for Helm
-          gpg --export-secret-keys > ~/.gnupg/secring.gpg
-          chmod 600 ~/.gnupg/secring.gpg
+          gpg --export-secret-keys > "$GNUPGHOME/secring.gpg"
+          chmod 600 "$GNUPGHOME/secring.gpg"
 
       - name: Update chart dependencies
         if: steps.check_release.outputs.should_release == 'true'
@@ -196,7 +209,7 @@ jobs:
             --destination dist/ \
             --sign \
             --key "$KEY_UID" \
-            --keyring ~/.gnupg/secring.gpg
+            --keyring "$GNUPGHOME/secring.gpg"
 
           PACKAGE_FILE="${CHART_NAME}-${CHART_VERSION}.tgz"
           PROV_FILE="${CHART_NAME}-${CHART_VERSION}.tgz.prov"
@@ -218,8 +231,6 @@ jobs:
 
           echo "package_file=$PACKAGE_FILE" >> $GITHUB_OUTPUT
           echo "prov_file=$PROV_FILE" >> $GITHUB_OUTPUT
-        env:
-          HELM_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Verify chart signature
         if: steps.check_release.outputs.should_release == 'true'
@@ -231,7 +242,7 @@ jobs:
           gpg --export --armor > dist/pubkey.asc
 
           echo "Verifying chart signature..."
-          helm verify "dist/${CHART_NAME}-${CHART_VERSION}.tgz" --keyring ~/.gnupg/secring.gpg
+          helm verify "dist/${CHART_NAME}-${CHART_VERSION}.tgz" --keyring "$GNUPGHOME/secring.gpg"
 
           echo "✅ Signature verified successfully"
 
@@ -321,10 +332,13 @@ jobs:
         if: always()
         run: |
           # Securely delete GPG keys
-          if [ -f ~/.gnupg/secring.gpg ]; then
-            shred -u ~/.gnupg/secring.gpg 2>/dev/null || rm -f ~/.gnupg/secring.gpg
+          if [ -n "$GNUPGHOME" ] && [ -d "$GNUPGHOME" ]; then
+            gpgconf --kill gpg-agent || true
+            if [ -f "$GNUPGHOME/secring.gpg" ]; then
+              shred -u "$GNUPGHOME/secring.gpg" 2>/dev/null || rm -f "$GNUPGHOME/secring.gpg"
+            fi
+            rm -rf "$GNUPGHOME"
           fi
-          rm -rf ~/.gnupg
 
       - name: Summary
         run: |
