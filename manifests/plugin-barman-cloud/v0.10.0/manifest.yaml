@@ -1008,7 +1008,7 @@ spec:
             secretKeyRef:
               key: SIDECAR_IMAGE
               name: plugin-barman-cloud-t5844mh4gf
-        image: ghcr.io/pgedge/plugin-barman-cloud:v0.10.0
+        image: ghcr.io/pgedge/plugin-barman-cloud-sidecar:v0.10.0
         name: barman-cloud
         ports:
         - containerPort: 9090
