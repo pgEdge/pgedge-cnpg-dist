@@ -56,7 +56,7 @@ Charts are published to the pgEdge Helm repository for easy installation:
 
 ```bash
 # Add the pgEdge Helm repository
-helm repo add pgedge https://pgedge.github.io/helm-charts
+helm repo add pgedge https://pgedge.github.io/charts
 helm repo update
 
 # Install CloudNativePG operator
