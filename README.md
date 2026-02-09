@@ -43,22 +43,50 @@ We build and distribute the `kubectl-cnpg` plugin from upstream CloudNativePG so
 
 We redistribute CloudNativePG Helm charts with modifications to use pgEdge-built operator images:
 
-| Chart | Versions | Upstream Source |
+| Chart | Latest Version | Upstream Source |
 |-------|----------|-----------------|
-| `charts/cloudnative-pg/` | v0.26.0, v0.26.1, v0.27.0 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
-| `charts/plugin-barman-cloud/` | v0.7.0 | [cloudnative-pg/plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud) |
+| `charts/cloudnative-pg/` | v0.27.1 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
+| `charts/plugin-barman-cloud/` | v0.5.0 | [cloudnative-pg/plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud) |
 
 **Modification:** Default image references changed to `ghcr.io/pgedge/` registry.
 
+### Installing from pgEdge Helm Repository
+
+Charts are published to the pgEdge Helm repository for easy installation:
+
+```bash
+# Add the pgEdge Helm repository
+helm repo add pgedge https://pgedge.github.io/helm-charts
+helm repo update
+
+# Install CloudNativePG operator
+helm install cnpg pgedge/cloudnative-pg \
+  --namespace cnpg-system \
+  --create-namespace
+
+# Install Barman Cloud plugin
+helm install barman pgedge/plugin-barman-cloud \
+  --namespace cnpg-system
+```
+
+To see available chart versions:
+
+```bash
+# Search for CloudNativePG charts
+helm search repo pgedge/cloudnative-pg --versions
+
+# Search for Barman Cloud plugin charts
+helm search repo pgedge/plugin-barman-cloud --versions
+```
+
 ## Manifests
 
-We redistribute CloudNativePG installation manifests with modifications to use pgEdge-built operator images:
+We redistribute CloudNativePG installation manifests with modifications to use pgEdge-built operator images. These are the latest versions:
 
 | Version | Upstream Source |
 |---------|-----------------|
-| v1.27.0 | [cloudnative-pg v1.27.0](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.27.0) |
-| v1.27.1 | [cloudnative-pg v1.27.1](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.27.1) |
-| v1.28.0 | [cloudnative-pg v1.28.0](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.28.0) |
+| v1.27.3 | [cloudnative-pg v1.27.3](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.27.3) |
+| v1.28.1 | [cloudnative-pg v1.28.1](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.28.1) |
 
 **Modification:** Operator image references changed to `ghcr.io/pgedge/` registry.
 
@@ -108,7 +136,7 @@ make test-comprehensive
 ### Version-Specific Tests
 
 ```bash
-make test-cnpg-1.28.0       # Specific operator version
+make test-cnpg-1.28.1       # Specific operator version
 make test-pg-18             # Specific PostgreSQL version
 make test-all-cnpg          # All operator versions
 make test-all-postgres      # All PostgreSQL versions
@@ -135,10 +163,10 @@ Tests are configured via [`tests/config/versions.yaml`](tests/config/versions.ya
 
 ```yaml
 cnpg_versions:
-  - version: "1.28.0"
-    chart_version: "0.27.0"
-    git_tag: "v1.28.0"
-    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.28.0"
+  - version: "1.28.1"
+    chart_version: "0.27.1"
+    git_tag: "v1.28.1"
+    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.28.1"
     postgres_versions: ["18", "17", "16"]
     providers:
       kind:
@@ -160,8 +188,8 @@ This repository contains components under different licenses:
 | Component | License | Location |
 |-----------|---------|----------|
 | pgEdge tests and tooling | [PostgreSQL License](LICENSE) | `tests/`, `.github/`, `Makefile` |
-| CloudNativePG charts | [Apache License 2.0](charts/cloudnative-pg/v0.27.0/LICENSE) | `charts/` |
-| CloudNativePG manifests | [Apache License 2.0](manifests/cloudnative-pg/v1.28.0/LICENSE) | `manifests/` |
+| CloudNativePG charts | [Apache License 2.0](charts/cloudnative-pg/v0.27.1/LICENSE) | `charts/` |
+| CloudNativePG manifests | [Apache License 2.0](manifests/cloudnative-pg/v1.28.1/LICENSE) | `manifests/` |
 
 See [NOTICE](NOTICE) for full attribution and trademark details.
 
