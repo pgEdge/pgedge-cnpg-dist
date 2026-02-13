@@ -168,15 +168,40 @@ jobs:
           echo "Matrix entries: $(echo "$matrix" | jq length)"
           echo "$matrix" | jq .
 
+  # Filter matrix for Kind-only jobs (PR/push events)
+  filter-kind-matrix:
+    name: Filter Kind Matrix
+    runs-on: ubuntu-latest
+    needs: generate-matrix
+    outputs:
+      matrix: ${{ steps.filter.outputs.matrix }}
+      has_jobs: ${{ steps.filter.outputs.has_jobs }}
+    steps:
+      - name: Filter matrix for Kind provider
+        id: filter
+        run: |
+          full_matrix='${{ needs.generate-matrix.outputs.matrix }}'
+          # Filter to only Kind jobs
+          kind_matrix=$(echo "$full_matrix" | jq -c '{include: [.include[] | select(.provider == "kind")]}')
+          job_count=$(echo "$kind_matrix" | jq '.include | length')
+          echo "matrix=$kind_matrix" >> $GITHUB_OUTPUT
+          if [ "$job_count" -gt 0 ]; then
+            echo "has_jobs=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_jobs=false" >> $GITHUB_OUTPUT
+          fi
+          echo "Filtered to $job_count Kind jobs"
+
   # Matrix job for Kind comprehensive, infrastructure and operator tests
   kind-test-matrix:
-    name: ${{ matrix.provider }} / ${{ matrix.cnpg_version }} / K8s ${{ matrix.k8s_version }} / ${{ matrix.test_type }}
+    name: kind / ${{ matrix.cnpg_version }} / K8s ${{ matrix.k8s_version }} / ${{ matrix.test_type }}
     runs-on: ubuntu-24.04-x64
-    needs: generate-matrix
+    needs: filter-kind-matrix
+    if: needs.filter-kind-matrix.outputs.has_jobs == 'true'
     timeout-minutes: 120
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.filter-kind-matrix.outputs.matrix) }}
 
     steps:
       - name: Checkout code
@@ -244,11 +269,130 @@ jobs:
           kind delete cluster --name cnpg-infra-test 2>/dev/null || true
           kind delete cluster --name cnpg-operator-test 2>/dev/null || true
 
+  # Filter matrix for EKS jobs (workflow_dispatch only)
+  filter-eks-matrix:
+    name: Filter EKS Matrix
+    runs-on: ubuntu-latest
+    needs: generate-matrix
+    if: github.event_name == 'workflow_dispatch' && contains(inputs.cluster_providers, 'eks')
+    outputs:
+      matrix: ${{ steps.filter.outputs.matrix }}
+      has_jobs: ${{ steps.filter.outputs.has_jobs }}
+    steps:
+      - name: Filter matrix for EKS provider
+        id: filter
+        run: |
+          full_matrix='${{ needs.generate-matrix.outputs.matrix }}'
+          # Filter to only EKS jobs
+          eks_matrix=$(echo "$full_matrix" | jq -c '{include: [.include[] | select(.provider == "eks")]}')
+          job_count=$(echo "$eks_matrix" | jq '.include | length')
+          echo "matrix=$eks_matrix" >> $GITHUB_OUTPUT
+          if [ "$job_count" -gt 0 ]; then
+            echo "has_jobs=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_jobs=false" >> $GITHUB_OUTPUT
+          fi
+          echo "Filtered to $job_count EKS jobs"
+
+  # Matrix job for EKS tests (only via workflow_dispatch)
+  eks-test-matrix:
+    name: eks / ${{ matrix.cnpg_version }} / K8s ${{ matrix.k8s_version }} / ${{ matrix.test_type }}
+    runs-on: ubuntu-latest
+    needs: filter-eks-matrix
+    if: needs.filter-eks-matrix.outputs.has_jobs == 'true'
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 1  # EKS clusters are expensive, run one at a time
+      matrix: ${{ fromJson(needs.filter-eks-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-west-2' }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5"
+          terraform_wrapper: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Run smoke test
+        if: matrix.test_type == 'smoke'
+        run: make test-smoke
+        env:
+          CLUSTER_PROVIDER: eks
+          KUBERNETES_VERSION: ${{ matrix.k8s_version }}
+          NODE_COUNT: 3
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
+          POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
+          EKS_USE_SPOT: "true"
+
+      - name: Run infrastructure test
+        if: matrix.test_type == 'infra'
+        run: make test-infra
+        env:
+          CLUSTER_PROVIDER: eks
+          KUBERNETES_VERSION: ${{ matrix.k8s_version }}
+          NODE_COUNT: 3
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
+          POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
+          EKS_USE_SPOT: "true"
+
+      - name: Run comprehensive test
+        if: matrix.test_type == 'comprehensive'
+        run: make test-comprehensive
+        env:
+          CLUSTER_PROVIDER: eks
+          KUBERNETES_VERSION: ${{ matrix.k8s_version }}
+          NODE_COUNT: 3
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
+          POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
+          EKS_USE_SPOT: "true"
+
+      - name: Run operator test
+        if: matrix.test_type == 'operator'
+        run: make test-operator
+        env:
+          CLUSTER_PROVIDER: eks
+          KUBERNETES_VERSION: ${{ matrix.k8s_version }}
+          NODE_COUNT: 3
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
+          POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
+          EKS_USE_SPOT: "true"
+
+      - name: Cleanup EKS cluster
+        if: always()
+        run: |
+          cd tests/terraform/eks
+          terraform destroy -auto-approve || true
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-west-2' }}
+
   # Summary job that requires all matrix jobs to pass
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [test-image-validation, kind-test-matrix]
+    needs: [test-image-validation, kind-test-matrix, eks-test-matrix]
     if: always()
     steps:
       - name: Check test results
@@ -257,8 +401,14 @@ jobs:
             echo "Image validation test failed"
             exit 1
           fi
-          if [ "${{ needs.kind-test-matrix.result }}" != "success" ]; then
+          # Kind tests are required (unless skipped because no Kind jobs in matrix)
+          if [ "${{ needs.kind-test-matrix.result }}" != "success" ] && [ "${{ needs.kind-test-matrix.result }}" != "skipped" ]; then
             echo "Kind matrix tests failed"
+            exit 1
+          fi
+          # EKS tests are optional (only run via workflow_dispatch with eks provider)
+          if [ "${{ needs.eks-test-matrix.result }}" == "failure" ]; then
+            echo "EKS matrix tests failed"
             exit 1
           fi
           echo "All tests passed!"

@@ -34,6 +34,12 @@ type Provider interface {
 
 	// GetClusterName returns the cluster name
 	GetClusterName() string
+
+	// Exists checks if the cluster already exists
+	Exists(t *testing.T) bool
+
+	// Connect connects to an existing cluster (updates kubeconfig without creating)
+	Connect(t *testing.T) error
 }
 
 // Config represents common configuration for all providers
@@ -52,9 +58,7 @@ func Create(t *testing.T, providerType string, config *Config) Provider {
 	case "kind":
 		return NewKind(config)
 	case "eks":
-		// TODO: Implement EKS provider
-		t.Fatalf("EKS provider not yet implemented")
-		return nil
+		return NewEKS(config)
 	case "aks":
 		// TODO: Implement AKS provider
 		t.Fatalf("AKS provider not yet implemented")
@@ -70,31 +74,50 @@ func Create(t *testing.T, providerType string, config *Config) Provider {
 }
 
 // Setup provisions a cluster with all required components
+// Respects CLUSTER_REUSE and CLUSTER_CLEANUP environment variables:
+//   - CLUSTER_REUSE=true: Reuse existing cluster if found
+//   - CLUSTER_CLEANUP=false: Skip cluster deletion after tests
 func Setup(t *testing.T, provider Provider) {
 	t.Helper()
 
-	// Create cluster
-	err := provider.Create(t)
-	if err != nil {
-		t.Fatalf("Failed to create cluster: %v", err)
-	}
+	reuse := GetClusterReuse()
+	cleanup := GetClusterCleanup()
 
-	// Install CSI driver
-	err = provider.InstallCSIDriver(t)
-	if err != nil {
-		t.Fatalf("Failed to install CSI driver: %v", err)
-	}
-
-	// Install image validation policy
-	err = provider.InstallImageValidationPolicy(t)
-	if err != nil {
-		t.Fatalf("Failed to install image validation policy: %v", err)
-	}
-
-	// Register cleanup
-	t.Cleanup(func() {
-		if err := provider.Delete(t); err != nil {
-			t.Logf("Warning: failed to cleanup cluster: %v", err)
+	// Check if we should reuse existing cluster
+	if reuse && provider.Exists(t) {
+		t.Logf("Reusing existing cluster: %s", provider.GetClusterName())
+		err := provider.Connect(t)
+		if err != nil {
+			t.Fatalf("Failed to connect to existing cluster: %v", err)
 		}
-	})
+	} else {
+		// Create cluster
+		err := provider.Create(t)
+		if err != nil {
+			t.Fatalf("Failed to create cluster: %v", err)
+		}
+
+		// Install CSI driver
+		err = provider.InstallCSIDriver(t)
+		if err != nil {
+			t.Fatalf("Failed to install CSI driver: %v", err)
+		}
+
+		// Install image validation policy
+		err = provider.InstallImageValidationPolicy(t)
+		if err != nil {
+			t.Fatalf("Failed to install image validation policy: %v", err)
+		}
+	}
+
+	// Register cleanup (unless disabled)
+	if cleanup {
+		t.Cleanup(func() {
+			if err := provider.Delete(t); err != nil {
+				t.Logf("Warning: failed to cleanup cluster: %v", err)
+			}
+		})
+	} else {
+		t.Logf("Cluster cleanup disabled (CLUSTER_CLEANUP=false), cluster %s will remain running", provider.GetClusterName())
+	}
 }

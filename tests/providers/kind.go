@@ -438,3 +438,41 @@ func (p *Kind) IsReady(t *testing.T) bool {
 func (p *Kind) GetClusterName() string {
 	return p.cluster.Name
 }
+
+// Exists checks if the Kind cluster already exists
+func (p *Kind) Exists(t *testing.T) bool {
+	t.Helper()
+
+	clusters, err := p.cluster.Provider.List()
+	if err != nil {
+		return false
+	}
+
+	for _, c := range clusters {
+		if c == p.cluster.Name {
+			return true
+		}
+	}
+	return false
+}
+
+// Connect connects to an existing Kind cluster
+func (p *Kind) Connect(t *testing.T) error {
+	t.Helper()
+
+	t.Logf("Connecting to existing Kind cluster: %s", p.cluster.Name)
+
+	// Export kubeconfig for existing cluster
+	err := p.cluster.Provider.ExportKubeConfig(p.cluster.Name, p.cluster.KubeConfigPath, false)
+	if err != nil {
+		return fmt.Errorf("failed to export kubeconfig: %w", err)
+	}
+
+	// Verify cluster is accessible
+	if !p.IsReady(t) {
+		return fmt.Errorf("cluster exists but is not ready")
+	}
+
+	t.Logf("Connected to Kind cluster %s", p.cluster.Name)
+	return nil
+}

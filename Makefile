@@ -18,7 +18,6 @@ POSTGRES_IMAGE_REGISTRY ?= public
 CLUSTER_PROVIDER ?= kind
 KUBERNETES_VERSION ?= 1.32
 NODE_COUNT ?= 3
-CLOUD_REGION ?=
 
 # Test configuration
 TEST_TIMEOUT ?= 30m
@@ -63,13 +62,17 @@ help: ## Show this help message
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean               - Clean all test artifacts"
-	@echo "  make clean-clusters      - Delete all Kind clusters"
+	@echo "  make clean-clusters      - Delete all test clusters (auto-selects based on provider)"
+	@echo "  make clean-kind-clusters - Delete all Kind clusters"
+	@echo "  make clean-eks-clusters  - Destroy EKS cluster via Terraform"
 	@echo ""
 	@echo "Development:"
 	@echo "  make deps                - Download Go dependencies"
 	@echo "  make fmt                 - Format Go code"
 	@echo "  make lint                - Run linters"
-	@echo "  make check-prereqs       - Verify required tools are installed"
+	@echo "  make check-prereqs       - Verify required tools (auto-selects based on provider)"
+	@echo "  make check-prereqs-kind  - Verify Kind prerequisites"
+	@echo "  make check-prereqs-eks   - Verify EKS prerequisites (aws, terraform, credentials)"
 	@echo ""
 	@echo "Configuration:"
 	@echo "  CNPG_VERSION=$(CNPG_VERSION)"
@@ -84,8 +87,16 @@ help: ## Show this help message
 	@echo ""
 
 .PHONY: check-prereqs
-check-prereqs: ## Check if required tools are installed
-	@echo "Checking prerequisites..."
+check-prereqs: ## Check if required tools are installed (auto-selects based on CLUSTER_PROVIDER)
+ifeq ($(CLUSTER_PROVIDER),eks)
+	@$(MAKE) check-prereqs-eks
+else
+	@$(MAKE) check-prereqs-kind
+endif
+
+.PHONY: check-prereqs-kind
+check-prereqs-kind: ## Check prerequisites for Kind provider
+	@echo "Checking Kind prerequisites..."
 	@command -v docker >/dev/null 2>&1 || { echo "$(RED)Error: docker is not installed$(NC)"; exit 1; }
 	@command -v kind >/dev/null 2>&1 || { echo "$(RED)Error: kind is not installed$(NC)"; exit 1; }
 	@command -v kubectl >/dev/null 2>&1 || { echo "$(RED)Error: kubectl is not installed$(NC)"; exit 1; }
@@ -94,7 +105,20 @@ check-prereqs: ## Check if required tools are installed
 	@command -v go >/dev/null 2>&1 || { echo "$(RED)Error: go is not installed$(NC)"; exit 1; }
 	@command -v ginkgo >/dev/null 2>&1 || { echo "$(YELLOW)Warning: ginkgo not installed (upstream E2E tests will fail)$(NC)"; }
 	@docker ps >/dev/null 2>&1 || { echo "$(RED)Error: Docker is not running$(NC)"; exit 1; }
-	@echo "$(GREEN)All prerequisites satisfied!$(NC)"
+	@echo "$(GREEN)All Kind prerequisites satisfied!$(NC)"
+
+.PHONY: check-prereqs-eks
+check-prereqs-eks: ## Check prerequisites for EKS provider
+	@echo "Checking EKS prerequisites..."
+	@command -v aws >/dev/null 2>&1 || { echo "$(RED)Error: aws CLI is not installed$(NC)"; exit 1; }
+	@command -v terraform >/dev/null 2>&1 || { echo "$(RED)Error: terraform is not installed$(NC)"; exit 1; }
+	@command -v kubectl >/dev/null 2>&1 || { echo "$(RED)Error: kubectl is not installed$(NC)"; exit 1; }
+	@command -v helm >/dev/null 2>&1 || { echo "$(RED)Error: helm is not installed$(NC)"; exit 1; }
+	@command -v git >/dev/null 2>&1 || { echo "$(RED)Error: git is not installed$(NC)"; exit 1; }
+	@command -v go >/dev/null 2>&1 || { echo "$(RED)Error: go is not installed$(NC)"; exit 1; }
+	@command -v ginkgo >/dev/null 2>&1 || { echo "$(YELLOW)Warning: ginkgo not installed (upstream E2E tests will fail)$(NC)"; }
+	@aws sts get-caller-identity >/dev/null 2>&1 || { echo "$(RED)Error: AWS credentials not configured$(NC)"; exit 1; }
+	@echo "$(GREEN)All EKS prerequisites satisfied!$(NC)"
 
 # Quick Start Targets
 
@@ -103,19 +127,19 @@ check-prereqs: ## Check if required tools are installed
 .PHONY: test-infra
 test-infra: check-prereqs ## Run infrastructure validation tests
 	@echo "$(BLUE)Running infrastructure tests...$(NC)"
-	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) \
 		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestInfra
 
 .PHONY: test-operator
 test-operator: check-prereqs ## Run CNPG operator deployment tests
 	@echo "$(BLUE)Running operator deployment tests...$(NC)"
-	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) \
 		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestOperator
 
 .PHONY: test-image-validation
 test-image-validation: check-prereqs ## Run image validation policy tests
 	@echo "$(BLUE)Running image validation policy tests...$(NC)"
-	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) \
 		go test $(TEST_FLAGS) -timeout $(TEST_TIMEOUT) . -run TestImageValidation
 
 .PHONY: test-comprehensive
@@ -129,13 +153,13 @@ test-smoke: ## Run smoke tests (fastest)
 .PHONY: test-upstream
 test-upstream: check-prereqs ## Run upstream E2E tests with custom label filter
 	@echo "$(BLUE)Running upstream E2E tests$(if $(LABEL_FILTER), with label filter: $(LABEL_FILTER),)...$(NC)"
-	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) \
 		LABEL_FILTER="$(LABEL_FILTER)" go test $(TEST_FLAGS) -timeout 3h . -run TestUpstream
 
 .PHONY: test-all
 test-all: check-prereqs ## Run all tests in parallel
 	@echo "$(BLUE)Running all tests...$(NC)"
-	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) CLOUD_REGION=$(CLOUD_REGION) \
+	cd tests && CLUSTER_PROVIDER=$(CLUSTER_PROVIDER) KUBERNETES_VERSION=$(KUBERNETES_VERSION) NODE_COUNT=$(NODE_COUNT) \
 		go test $(TEST_FLAGS) -timeout 4h -parallel $(TEST_PARALLEL) .
 
 # Version-Specific Targets
@@ -188,11 +212,30 @@ test-all-postgres: check-prereqs ## Test all PostgreSQL versions
 # Cleanup Targets
 
 .PHONY: clean-clusters
-clean-clusters: ## Delete all Kind clusters
+clean-clusters: ## Delete all test clusters (Kind and EKS)
+ifeq ($(CLUSTER_PROVIDER),eks)
+	@$(MAKE) clean-eks-clusters
+else
+	@$(MAKE) clean-kind-clusters
+endif
+
+.PHONY: clean-kind-clusters
+clean-kind-clusters: ## Delete all Kind clusters
 	@echo "$(BLUE)Deleting all Kind clusters...$(NC)"
 	@kind get clusters | grep "cnpg" | xargs -r kind delete cluster --name || true
 	@rm -f /tmp/cnpg-*.kubeconfig
-	@echo "$(GREEN)Clusters cleaned up$(NC)"
+	@echo "$(GREEN)Kind clusters cleaned up$(NC)"
+
+.PHONY: clean-eks-clusters
+clean-eks-clusters: ## Force cleanup EKS clusters via Terraform destroy
+	@echo "$(BLUE)Destroying EKS clusters via Terraform...$(NC)"
+	@if [ -d "tests/terraform/eks" ] && [ -f "tests/terraform/eks/terraform.tfstate" ]; then \
+		cd tests/terraform/eks && terraform destroy -auto-approve || true; \
+	else \
+		echo "$(YELLOW)No EKS terraform state found$(NC)"; \
+	fi
+	@rm -f /tmp/cnpg-*.kubeconfig
+	@echo "$(GREEN)EKS clusters cleaned up$(NC)"
 
 .PHONY: clean-results
 clean-results: ## Delete test results

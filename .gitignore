@@ -25,3 +25,10 @@ coverage.txt
 *~
 .vscode/
 .idea/
+
+# Terraform state and cache (EKS provider)
+tests/terraform/eks/.terraform/
+tests/terraform/eks/.terraform.lock.hcl
+tests/terraform/eks/terraform.tfstate
+tests/terraform/eks/terraform.tfstate.backup
+tests/terraform/eks/*.tfplan
