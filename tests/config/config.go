@@ -15,6 +15,15 @@ type Config struct {
 	KindDefaults             KindDefaults                    `yaml:"kind_defaults"`
 	KubernetesVersions       map[string]KubernetesVersion    `yaml:"kubernetes_versions"`
 	DefaultKubernetesVersion string                          `yaml:"default_kubernetes_version"`
+	PgedgeHelm               PgedgeHelmDefaults              `yaml:"pgedge_helm"`
+}
+
+// PgedgeHelmDefaults represents pgEdge Helm chart test defaults
+type PgedgeHelmDefaults struct {
+	CertManagerVersion  string `yaml:"cert_manager_version"`
+	CertManagerManifest string `yaml:"cert_manager_manifest"`
+	DefaultValues       string `yaml:"default_values"`
+	InitSpockImage      string `yaml:"init_spock_image"`
 }
 
 // CNPGVersion represents a specific CNPG version configuration
