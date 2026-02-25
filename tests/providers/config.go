@@ -4,6 +4,8 @@ import (
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/pgedge/pgedge-cnpg-dist/tests/config"
 )
 
 // GetProviderType returns the provider type from environment or defaults to "kind"
@@ -24,26 +26,63 @@ func GetKubernetesVersion() string {
 	return k8sVersion
 }
 
-// GetRegion returns the cloud region from environment (for cloud providers)
+// GetRegion returns the cloud region from environment, falling back to versions.yaml default
 func GetRegion() string {
-	return os.Getenv("CLOUD_REGION")
+	if v := os.Getenv("CLOUD_REGION"); v != "" {
+		return v
+	}
+	if cfg, err := config.LoadConfig(); err == nil && cfg.EKSDefaults.Region != "" {
+		return cfg.EKSDefaults.Region
+	}
+	return "us-east-1"
 }
 
-// GetNodeCount returns the number of nodes from environment or defaults to 3
+// GetNodeCount returns the number of nodes from environment, falling back to versions.yaml default
 func GetNodeCount() int {
-	nodeCountStr := os.Getenv("NODE_COUNT")
-	if nodeCountStr == "" {
-		return 3
+	if v := os.Getenv("NODE_COUNT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
 	}
-	nodeCount, err := strconv.Atoi(nodeCountStr)
-	if err != nil {
-		return 3
+	if cfg, err := config.LoadConfig(); err == nil {
+		switch GetProviderType() {
+		case "eks":
+			if cfg.EKSDefaults.NodeCount > 0 {
+				return cfg.EKSDefaults.NodeCount
+			}
+		default:
+			if cfg.KindDefaults.Nodes > 0 {
+				return cfg.KindDefaults.Nodes
+			}
+		}
 	}
-	return nodeCount
+	return 3
 }
 
-// CreateFromEnv creates a provider from environment variables
-func CreateFromEnv(t *testing.T, clusterName string) Provider {
+// GetInstanceType returns the instance type from environment, falling back to versions.yaml default
+func GetInstanceType() string {
+	if v := os.Getenv("INSTANCE_TYPE"); v != "" {
+		return v
+	}
+	if cfg, err := config.LoadConfig(); err == nil && cfg.EKSDefaults.InstanceType != "" {
+		return cfg.EKSDefaults.InstanceType
+	}
+	return "m5.large"
+}
+
+// GetNodeArch returns the node architecture from environment, falling back to versions.yaml default
+func GetNodeArch() string {
+	if v := os.Getenv("NODE_ARCH"); v != "" {
+		return v
+	}
+	if cfg, err := config.LoadConfig(); err == nil && cfg.EKSDefaults.NodeArch != "" {
+		return cfg.EKSDefaults.NodeArch
+	}
+	return "amd64"
+}
+
+// NewProvider creates a provider from environment variables
+func NewProvider(t *testing.T, clusterName string) Provider {
 	t.Helper()
 
 	config := &Config{
@@ -51,11 +90,13 @@ func CreateFromEnv(t *testing.T, clusterName string) Provider {
 		KubernetesVersion: GetKubernetesVersion(),
 		NodeCount:         GetNodeCount(),
 		Region:            GetRegion(),
+		InstanceType:      GetInstanceType(),
+		NodeArch:          GetNodeArch(),
 	}
 
 	providerType := GetProviderType()
-	t.Logf("Creating cluster %s using provider: %s (K8s: %s, Nodes: %d)",
-		clusterName, providerType, config.KubernetesVersion, config.NodeCount)
+	t.Logf("Creating cluster %s using provider: %s (K8s: %s, Nodes: %d, Arch: %s, Instance: %s)",
+		clusterName, providerType, config.KubernetesVersion, config.NodeCount, config.NodeArch, config.InstanceType)
 
 	return Create(t, providerType, config)
 }

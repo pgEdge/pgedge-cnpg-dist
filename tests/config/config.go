@@ -13,6 +13,7 @@ type Config struct {
 	PostgresImages           PostgresImages                  `yaml:"postgres_images"`
 	TestDefaults             TestDefaults                    `yaml:"test_defaults"`
 	KindDefaults             KindDefaults                    `yaml:"kind_defaults"`
+	EKSDefaults              EKSDefaults                     `yaml:"eks_defaults"`
 	KubernetesVersions       map[string]KubernetesVersion    `yaml:"kubernetes_versions"`
 	DefaultKubernetesVersion string                          `yaml:"default_kubernetes_version"`
 }
@@ -81,6 +82,25 @@ type StorageConfig struct {
 	DefaultClass  string `yaml:"default_class"`
 	CSIClass      string `yaml:"csi_class"`
 	SnapshotClass string `yaml:"snapshot_class"`
+}
+
+// EKSDefaults represents EKS cluster defaults
+type EKSDefaults struct {
+	Region       string        `yaml:"region"`
+	NodeCount    int           `yaml:"node_count"`
+	InstanceType string        `yaml:"instance_type"`
+	NodeArch     string        `yaml:"node_arch"`
+	Storage      StorageConfig `yaml:"storage"`
+}
+
+// GetStorageConfig returns the storage configuration for the given provider type
+func (c *Config) GetStorageConfig(providerType string) StorageConfig {
+	switch providerType {
+	case "eks":
+		return c.EKSDefaults.Storage
+	default:
+		return c.KindDefaults.Storage
+	}
 }
 
 // KubernetesVersion represents K8s version-specific configuration

@@ -42,6 +42,8 @@ type Config struct {
 	KubernetesVersion string // K8s version (e.g., "1.32")
 	NodeCount         int    // Number of nodes
 	Region            string // Cloud region (for cloud providers)
+	InstanceType      string // Instance type (for cloud providers, e.g., "m5.large", "m7g.large")
+	NodeArch          string // Node architecture: "amd64" or "arm64"
 }
 
 // Create creates a provider based on the provider type
@@ -52,9 +54,7 @@ func Create(t *testing.T, providerType string, config *Config) Provider {
 	case "kind":
 		return NewKind(config)
 	case "eks":
-		// TODO: Implement EKS provider
-		t.Fatalf("EKS provider not yet implemented")
-		return nil
+		return NewEKS(config)
 	case "aks":
 		// TODO: Implement AKS provider
 		t.Fatalf("AKS provider not yet implemented")

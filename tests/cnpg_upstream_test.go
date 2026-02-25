@@ -32,7 +32,7 @@ func TestUpstream(t *testing.T) {
 
 	// Create cluster using provider from environment
 	clusterName := fmt.Sprintf("cnpg-e2e-%s", strings.ReplaceAll(cnpgVersion.Version, ".", "-"))
-	provider := providers.CreateFromEnv(t, clusterName)
+	provider := providers.NewProvider(t, clusterName)
 	providers.Setup(t, provider)
 
 	// Get PostgreSQL image
@@ -57,8 +57,11 @@ func TestUpstream(t *testing.T) {
 	// Clone CNPG repository at specific version
 	cnpgRepo := cloneCNPGRepo(t, cnpgVersion.GitTag, cnpgVersion.Version, postgresVersion)
 
+	// Get provider-aware storage config
+	storageConfig := cfg.GetStorageConfig(providers.GetProviderType())
+
 	// Run upstream E2E tests
-	testResults := runUpstreamE2ETests(t, cnpgRepo, provider.GetKubeConfigPath(), postgresImage)
+	testResults := runUpstreamE2ETests(t, cnpgRepo, provider.GetKubeConfigPath(), postgresImage, storageConfig)
 
 	// Log results
 	t.Logf("Test results: %+v", testResults)
@@ -88,10 +91,10 @@ func cloneCNPGRepo(t *testing.T, gitTag, cnpgVersion, postgresVersion string) st
 
 	repoDir := filepath.Join(os.TempDir(), fmt.Sprintf("cnpg-e2e-%s-%s", cnpgVersion, postgresVersion))
 
-	// Check if already exists
+	// Always start fresh to avoid stale/corrupted clones
 	if _, err := os.Stat(repoDir); err == nil {
-		t.Logf("CNPG repository already exists at %s", repoDir)
-		return repoDir
+		t.Logf("Removing existing CNPG repository at %s", repoDir)
+		os.RemoveAll(repoDir)
 	}
 
 	t.Logf("Cloning CNPG repository (tag: %s) to %s", gitTag, repoDir)
@@ -114,7 +117,7 @@ func cloneCNPGRepo(t *testing.T, gitTag, cnpgVersion, postgresVersion string) st
 }
 
 // runUpstreamE2ETests executes the upstream CNPG E2E tests
-func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImage string) TestResults {
+func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImage string, storageConfig config.StorageConfig) TestResults {
 	t.Helper()
 
 	testsDir := filepath.Join(cnpgRepoDir, "tests", "e2e")
@@ -161,10 +164,13 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 		fmt.Sprintf("POSTGRES_IMG=%s", postgresImage),
 		"TEST_UPGRADE_TO_V1=false",
 		"TEST_CLOUD_VENDOR=local",
-		"E2E_DEFAULT_STORAGE_CLASS=csi-hostpath-sc",
-		"E2E_CSI_STORAGE_CLASS=csi-hostpath-sc",
-		"E2E_DEFAULT_VOLUMESNAPSHOT_CLASS=csi-hostpath-snapclass",
+		fmt.Sprintf("E2E_DEFAULT_STORAGE_CLASS=%s", storageConfig.CSIClass),
+		fmt.Sprintf("E2E_CSI_STORAGE_CLASS=%s", storageConfig.CSIClass),
+		fmt.Sprintf("E2E_DEFAULT_VOLUMESNAPSHOT_CLASS=%s", storageConfig.SnapshotClass),
 	)
+
+	// Use absolute path for report so it's always findable
+	reportPath := filepath.Join(testsDir, "report.json")
 
 	// Run ginkgo tests (flags match upstream CNPG run-e2e.sh)
 	cmd := exec.Command("ginkgo",
@@ -179,7 +185,7 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 		"--force-newlines",              // Ensure newlines in output
 		"--silence-skips",               // Don't log skipped tests
 		"-v",                            // Verbose
-		"--json-report=report.json",
+		fmt.Sprintf("--json-report=%s", reportPath),
 		"./...",
 	)
 
@@ -189,11 +195,12 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 	cmd.Stderr = os.Stderr
 
 	t.Logf("Executing: ginkgo with label filter: %s", labelFilter)
+	t.Logf("JSON report will be written to: %s", reportPath)
 
 	err := cmd.Run()
 
 	// Parse results from JSON report
-	results := parseTestResults(t, filepath.Join(testsDir, "report.json"))
+	results := parseTestResults(t, reportPath)
 
 	// If ginkgo succeeded (exit code 0) but parsing failed to find passed tests,
 	// it means the JSON format is different than expected. Trust ginkgo's exit code.

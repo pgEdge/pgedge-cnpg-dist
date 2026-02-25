@@ -85,6 +85,17 @@ kind_defaults:
     csi_class: "csi-hostpath-sc"
     snapshot_class: "csi-hostpath-snapclass"
 
+# EKS cluster defaults
+eks_defaults:
+  region: "ap-south-1"
+  node_count: 3
+  instance_type: "m5.large"  # Use m7g.large for arm64 testing with Graviton instances, m5.large for amd64
+  node_arch: "amd64"  # amd64 or arm64 (use arm64 with Graviton instances like m7g.large)
+  storage:
+    default_class: "ebs-gp3"
+    csi_class: "ebs-gp3"
+    snapshot_class: "ebs-snapshot-class"
+
 # Kubernetes version-specific configuration
 # Each K8s version defines its own set of manifests for cluster setup
 # Used for CSI drivers, storage, monitoring, and any other version-specific components
