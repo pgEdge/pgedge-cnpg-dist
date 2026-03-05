@@ -61,7 +61,16 @@ func TestUpstream(t *testing.T) {
 	cnpgRepo := cloneCNPGRepo(t, cnpgVersion.GitTag, cnpgVersion.Version, postgresVersion)
 
 	// Get provider-aware storage config
-	storageConfig := cfg.GetStorageConfig(providers.GetProviderType())
+	storageConfig, ok := cfg.GetStorageConfig(providers.GetProviderType())
+	if !ok {
+		t.Fatalf("no storage config found for provider %s", providers.GetProviderType())
+	}
+	if storageConfig.CSIClass == "" {
+		t.Fatalf("storage config for provider %s is missing CSIClass", providers.GetProviderType())
+	}
+	if storageConfig.SnapshotClass == "" {
+		t.Fatalf("storage config for provider %s is missing SnapshotClass", providers.GetProviderType())
+	}
 
 	// Run upstream E2E tests
 	testResults := runUpstreamE2ETests(t, cnpgRepo, provider.GetKubeConfigPath(), postgresImage, storageConfig)

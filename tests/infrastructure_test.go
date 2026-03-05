@@ -27,7 +27,10 @@ func TestInfra(t *testing.T) {
 	expectedNodes := providers.GetNodeCount()
 
 	// Get storage config for the active provider
-	storageConfig := cfg.GetStorageConfig(providers.GetProviderType())
+	storageConfig, ok := cfg.GetStorageConfig(providers.GetProviderType())
+	if !ok {
+		t.Fatalf("no storage config found for provider %s", providers.GetProviderType())
+	}
 
 	// Verify cluster is functional
 	t.Run("Verify cluster has correct number of nodes", func(t *testing.T) {

@@ -1,6 +1,11 @@
 variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
+
+  validation {
+    condition     = can(regex("^[0-9A-Za-z][A-Za-z0-9_-]*$", var.cluster_name)) && length(var.cluster_name) <= 100
+    error_message = "cluster_name must be 1-100 characters, start with an alphanumeric, and contain only letters, digits, hyphens, or underscores."
+  }
 }
 
 variable "region" {
@@ -19,6 +24,11 @@ variable "node_count" {
   description = "Number of worker nodes"
   type        = number
   default     = 3
+
+  validation {
+    condition     = var.node_count > 0
+    error_message = "node_count must be a positive integer."
+  }
 }
 
 variable "instance_type" {

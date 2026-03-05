@@ -31,7 +31,7 @@ func NewEKS(config *Config) *EKS {
 	}
 
 	// Kubectl configuration path, the file will be written after cluster creation
-	kubeConfigPath := filepath.Join(os.TempDir(), fmt.Sprintf("%s.kubeconfig", config.Name))
+	kubeConfigPath := filepath.Join(os.TempDir(), fmt.Sprintf("%s-%d.kubeconfig", config.Name, os.Getpid()))
 	fmt.Printf("EKS provider will use kubeconfig path: %s\n", kubeConfigPath)
 
 	// eks relate terraform information
@@ -86,7 +86,7 @@ func (e *EKS) Name() string {
 }
 
 // Create provisions an EKS cluster using Terraform via Terratest
-func (e *EKS) Create(t *testing.T) error {
+func (e *EKS) Create(t *testing.T) (retErr error) {
 	t.Helper()
 
 	t.Logf("Creating EKS cluster: %s in region %s (via Terraform)", e.config.Name, e.config.Region)
@@ -96,6 +96,17 @@ func (e *EKS) Create(t *testing.T) error {
 	if err != nil {
 		return fmt.Errorf("terraform apply failed: %w", err)
 	}
+
+	// If any post-apply step fails, destroy the cluster to avoid resource leaks
+	defer func() {
+		if retErr != nil {
+			t.Logf("Create failed after apply, destroying cluster to avoid resource leaks")
+			if _, destroyErr := terraform.DestroyE(t, e.tfOpts(t)); destroyErr != nil {
+				t.Logf("Warning: failed to destroy cluster during cleanup: %v", destroyErr)
+				retErr = fmt.Errorf("%w; cleanup destroy also failed: %v", retErr, destroyErr)
+			}
+		}
+	}()
 
 	// Extract kubeconfig from Terraform output and write to file
 	kubeconfig, err := terraform.OutputE(t, e.tfOpts(t), "kubeconfig")

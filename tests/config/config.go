@@ -92,12 +92,13 @@ type StorageConfig struct {
 	SnapshotClass string `yaml:"snapshot_class"`
 }
 
-// GetStorageConfig returns the storage configuration for the given provider type
-func (c *Config) GetStorageConfig(providerType string) StorageConfig {
+// GetStorageConfig returns the storage configuration for the given provider type.
+// The second return value is false when no defaults are configured for the provider.
+func (c *Config) GetStorageConfig(providerType string) (StorageConfig, bool) {
 	if defaults, ok := c.ProviderDefaults[providerType]; ok {
-		return defaults.Storage
+		return defaults.Storage, true
 	}
-	return StorageConfig{}
+	return StorageConfig{}, false
 }
 
 // KubernetesVersion represents K8s version-specific configuration

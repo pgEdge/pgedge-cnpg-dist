@@ -195,14 +195,24 @@ func (kc *kindCluster) waitForClusterReady(t *testing.T, timeout time.Duration) 
 	}
 
 	// Wait for system pods by checking with kubectl
+	var lastPodErr error
+	podFound := false
 	for i := 0; i < maxRetries; i++ {
-		output, podErr := k8s.RunKubectlAndGetOutputE(t, opts, "get", "pods", "-n", "kube-system", "-o", "jsonpath={.items[*].metadata.name}")
-		if podErr == nil && output != "" {
+		var output string
+		output, lastPodErr = k8s.RunKubectlAndGetOutputE(t, opts, "get", "pods", "-n", "kube-system", "-o", "jsonpath={.items[*].metadata.name}")
+		if lastPodErr == nil && output != "" {
+			podFound = true
 			break
 		}
 		if i < maxRetries-1 {
 			time.Sleep(5 * time.Second)
 		}
+	}
+	if !podFound {
+		if lastPodErr != nil {
+			return fmt.Errorf("kube-system pods not available: %w", lastPodErr)
+		}
+		return fmt.Errorf("kube-system pods not available after %d retries", maxRetries)
 	}
 
 	return nil
