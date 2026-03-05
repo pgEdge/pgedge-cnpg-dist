@@ -30,6 +30,9 @@ func TestUpstream(t *testing.T) {
 	require.NoError(t, err, "Failed to get CNPG version")
 	postgresVersion := cnpgVersion.GetPostgresVersionFromEnv()
 
+	t.Logf("Test execution: CNPG=%s  PostgreSQL=%s  Kubernetes=%s  Provider=%s",
+		cnpgVersion.Version, postgresVersion, providers.GetKubernetesVersion(), providers.GetProviderType())
+
 	// Create cluster using provider from environment
 	clusterName := fmt.Sprintf("cnpg-e2e-%s", strings.ReplaceAll(cnpgVersion.Version, ".", "-"))
 	provider := providers.NewProvider(t, clusterName)
@@ -94,7 +97,9 @@ func cloneCNPGRepo(t *testing.T, gitTag, cnpgVersion, postgresVersion string) st
 	// Always start fresh to avoid stale/corrupted clones
 	if _, err := os.Stat(repoDir); err == nil {
 		t.Logf("Removing existing CNPG repository at %s", repoDir)
-		os.RemoveAll(repoDir)
+		if err := os.RemoveAll(repoDir); err != nil {
+			t.Fatalf("failed to remove existing CNPG repo %s: %v", repoDir, err)
+		}
 	}
 
 	t.Logf("Cloning CNPG repository (tag: %s) to %s", gitTag, repoDir)

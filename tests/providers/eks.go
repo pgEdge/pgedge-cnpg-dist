@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,16 +11,17 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/terraform"
+	"github.com/pgedge/pgedge-cnpg-dist/tests/config"
 )
 
-// Provider interfce for AWS EKS
+// EKS implements the Provider interface for AWS EKS
 type EKS struct {
 	config         *Config
 	kubeConfigPath string
-	tfOptions      *terraform.Options
+	baseTfOpts     *terraform.Options
 }
 
-// NewEKS initializes detial/configuration required to create EKS cluster using Terraform
+// NewEKS initializes the configuration required to create an EKS cluster using Terraform
 func NewEKS(config *Config) *EKS {
 	if config.Region == "" {
 		config.Region = "us-east-1"
@@ -37,23 +37,21 @@ func NewEKS(config *Config) *EKS {
 	// eks relate terraform information
 	tfDir := findTerraformDir("eks")
 
-	tfOptions := terraform.WithDefaultRetryableErrors(nil, &terraform.Options{
-		TerraformDir: tfDir,
-		Vars: map[string]interface{}{
-			"cluster_name":       config.Name,
-			"region":             config.Region,
-			"kubernetes_version": config.KubernetesVersion,
-			"node_count":         config.NodeCount,
-			"instance_type":      config.InstanceType,
-			"node_arch":          config.NodeArch,
-		},
-		NoColor: true,
-	})
-
 	return &EKS{
 		config:         config,
 		kubeConfigPath: kubeConfigPath,
-		tfOptions:      tfOptions,
+		baseTfOpts: &terraform.Options{
+			TerraformDir: tfDir,
+			Vars: map[string]interface{}{
+				"cluster_name":       config.Name,
+				"region":             config.Region,
+				"kubernetes_version": config.KubernetesVersion,
+				"node_count":         config.NodeCount,
+				"instance_type":      config.InstanceType,
+				"node_arch":          config.NodeArch,
+			},
+			NoColor: true,
+		},
 	}
 }
 
@@ -77,6 +75,11 @@ func findTerraformDir(provider string) string {
 	}
 }
 
+// tfOpts wraps baseTfOpts with retryable-error handling using the real testing.T.
+func (e *EKS) tfOpts(t *testing.T) *terraform.Options {
+	return terraform.WithDefaultRetryableErrors(t, e.baseTfOpts)
+}
+
 // Name returns the provider name
 func (e *EKS) Name() string {
 	return "eks"
@@ -89,13 +92,16 @@ func (e *EKS) Create(t *testing.T) error {
 	t.Logf("Creating EKS cluster: %s in region %s (via Terraform)", e.config.Name, e.config.Region)
 
 	// Initialize and apply Terraform
-	_, err := terraform.InitAndApplyE(t, e.tfOptions)
+	_, err := terraform.InitAndApplyE(t, e.tfOpts(t))
 	if err != nil {
 		return fmt.Errorf("terraform apply failed: %w", err)
 	}
 
 	// Extract kubeconfig from Terraform output and write to file
-	kubeconfig := terraform.Output(t, e.tfOptions, "kubeconfig")
+	kubeconfig, err := terraform.OutputE(t, e.tfOpts(t), "kubeconfig")
+	if err != nil {
+		return fmt.Errorf("failed to get kubeconfig output: %w", err)
+	}
 	if err := os.WriteFile(e.kubeConfigPath, []byte(kubeconfig), 0600); err != nil {
 		return fmt.Errorf("failed to write kubeconfig: %w", err)
 	}
@@ -115,7 +121,7 @@ func (e *EKS) Delete(t *testing.T) error {
 
 	t.Logf("Deleting EKS cluster: %s (via Terraform destroy)", e.config.Name)
 
-	_, err := terraform.DestroyE(t, e.tfOptions)
+	_, err := terraform.DestroyE(t, e.tfOpts(t))
 	if err != nil {
 		return fmt.Errorf("terraform destroy failed: %w", err)
 	}
@@ -152,7 +158,7 @@ func (e *EKS) InstallCSIDriver(t *testing.T) error {
 	t.Log("Waiting for EBS CSI driver pods to be ready")
 	for i := 0; i < 60; i++ {
 		output, podErr := k8s.RunKubectlAndGetOutputE(t, opts, "get", "pods", "-n", "kube-system", "-l", "app.kubernetes.io/name=aws-ebs-csi-driver", "-o", "jsonpath={.items[*].status.phase}")
-		if podErr == nil && output != "" && !strings.Contains(output, "Pending") {
+		if podErr == nil && output != "" && !strings.Contains(output, "Pending") && !strings.Contains(output, "Failed") && !strings.Contains(output, "Unknown") {
 			t.Logf("EBS CSI driver pods are running")
 			break
 		}
@@ -163,18 +169,19 @@ func (e *EKS) InstallCSIDriver(t *testing.T) error {
 		}
 	}
 
-	// Install VolumeSnapshot CRDs (not included by default on EKS)
-	t.Log("Installing VolumeSnapshot CRDs")
-	snapshotCRDBaseURL := "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.2.0/client/config/crd"
-	snapshotCRDs := []string{
-		"snapshot.storage.k8s.io_volumesnapshotclasses.yaml",
-		"snapshot.storage.k8s.io_volumesnapshotcontents.yaml",
-		"snapshot.storage.k8s.io_volumesnapshots.yaml",
+	// Install manifests from versions.yaml (snapshot CRDs + snapshot controller)
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
 	}
-	for _, crd := range snapshotCRDs {
-		crdURL := fmt.Sprintf("%s/%s", snapshotCRDBaseURL, crd)
-		if err := k8s.RunKubectlE(t, opts, "apply", "-f", crdURL); err != nil {
-			return fmt.Errorf("failed to install snapshot CRD %s: %w", crd, err)
+	eksDefaults, ok := cfg.ProviderDefaults["eks"]
+	if !ok || len(eksDefaults.Manifests) == 0 {
+		return fmt.Errorf("no manifests found for eks provider in versions.yaml")
+	}
+	for _, m := range eksDefaults.Manifests {
+		t.Logf("Applying %s", m.Name)
+		if err := k8s.RunKubectlE(t, opts, "apply", "-f", m.URL); err != nil {
+			return fmt.Errorf("failed to apply %s: %w", m.Name, err)
 		}
 	}
 
@@ -217,40 +224,7 @@ deletionPolicy: Delete
 // InstallImageValidationPolicy installs the ValidatingAdmissionPolicy to block non-pgEdge images
 func (e *EKS) InstallImageValidationPolicy(t *testing.T) error {
 	t.Helper()
-
-	t.Log("Installing image validation policy to block non-pgEdge PostgreSQL images")
-
-	opts := e.GetKubectlOptions("")
-
-	// Find the manifests directory
-	projectRoot, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	for {
-		if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
-			break
-		}
-		parent := filepath.Dir(projectRoot)
-		if parent == projectRoot {
-			return fmt.Errorf("could not find project root (go.mod not found)")
-		}
-		projectRoot = parent
-	}
-
-	policyPath := filepath.Join(projectRoot, "tests", "manifests", "image-validation-policy.yaml")
-
-	if _, err := os.Stat(policyPath); os.IsNotExist(err) {
-		return fmt.Errorf("image validation policy not found at %s", policyPath)
-	}
-
-	if err := k8s.RunKubectlE(t, opts, "apply", "-f", policyPath); err != nil {
-		return fmt.Errorf("failed to apply image validation policy: %w", err)
-	}
-
-	t.Log("Image validation policy installed - only pgEdge PostgreSQL images will be allowed")
-	return nil
+	return installImageValidationPolicy(t, e.GetKubectlOptions(""))
 }
 
 // IsReady checks if the cluster is ready for use
@@ -270,9 +244,6 @@ func (e *EKS) GetClusterName() string {
 // waitForClusterReady waits for the EKS cluster to be fully ready
 func (e *EKS) waitForClusterReady(t *testing.T, timeout time.Duration) error {
 	t.Helper()
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
 
 	opts := e.GetKubectlOptions("")
 
@@ -296,14 +267,5 @@ func (e *EKS) waitForClusterReady(t *testing.T, timeout time.Duration) error {
 		return "All nodes ready", nil
 	})
 
-	if err != nil {
-		return err
-	}
-
-	select {
-	case <-ctx.Done():
-		return fmt.Errorf("timeout waiting for cluster ready")
-	default:
-		return nil
-	}
+	return err
 }

@@ -17,13 +17,25 @@ func GetProviderType() string {
 	return providerType
 }
 
-// GetKubernetesVersion returns the Kubernetes version from environment or defaults to "1.32"
-func GetKubernetesVersion() string {
-	k8sVersion := os.Getenv("KUBERNETES_VERSION")
-	if k8sVersion == "" {
-		k8sVersion = "1.32"
+// getProviderDefaults returns the ProviderDefaults for the active provider from versions.yaml
+func getProviderDefaults() *config.ProviderDefaults {
+	if cfg, err := config.LoadConfig(); err == nil {
+		if defaults, ok := cfg.ProviderDefaults[GetProviderType()]; ok {
+			return &defaults
+		}
 	}
-	return k8sVersion
+	return nil
+}
+
+// GetKubernetesVersion returns the Kubernetes version from environment, falling back to versions.yaml default
+func GetKubernetesVersion() string {
+	if v := os.Getenv("KUBERNETES_VERSION"); v != "" {
+		return v
+	}
+	if d := getProviderDefaults(); d != nil && d.KubernetesVersion != "" {
+		return d.KubernetesVersion
+	}
+	return "1.32"
 }
 
 // GetRegion returns the cloud region from environment, falling back to versions.yaml default
@@ -31,8 +43,8 @@ func GetRegion() string {
 	if v := os.Getenv("CLOUD_REGION"); v != "" {
 		return v
 	}
-	if cfg, err := config.LoadConfig(); err == nil && cfg.EKSDefaults.Region != "" {
-		return cfg.EKSDefaults.Region
+	if d := getProviderDefaults(); d != nil && d.Region != "" {
+		return d.Region
 	}
 	return "us-east-1"
 }
@@ -40,21 +52,12 @@ func GetRegion() string {
 // GetNodeCount returns the number of nodes from environment, falling back to versions.yaml default
 func GetNodeCount() int {
 	if v := os.Getenv("NODE_COUNT"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			return n
 		}
 	}
-	if cfg, err := config.LoadConfig(); err == nil {
-		switch GetProviderType() {
-		case "eks":
-			if cfg.EKSDefaults.NodeCount > 0 {
-				return cfg.EKSDefaults.NodeCount
-			}
-		default:
-			if cfg.KindDefaults.Nodes > 0 {
-				return cfg.KindDefaults.Nodes
-			}
-		}
+	if d := getProviderDefaults(); d != nil && d.NodeCount > 0 {
+		return d.NodeCount
 	}
 	return 3
 }
@@ -64,8 +67,8 @@ func GetInstanceType() string {
 	if v := os.Getenv("INSTANCE_TYPE"); v != "" {
 		return v
 	}
-	if cfg, err := config.LoadConfig(); err == nil && cfg.EKSDefaults.InstanceType != "" {
-		return cfg.EKSDefaults.InstanceType
+	if d := getProviderDefaults(); d != nil && d.InstanceType != "" {
+		return d.InstanceType
 	}
 	return "m5.large"
 }
@@ -75,13 +78,13 @@ func GetNodeArch() string {
 	if v := os.Getenv("NODE_ARCH"); v != "" {
 		return v
 	}
-	if cfg, err := config.LoadConfig(); err == nil && cfg.EKSDefaults.NodeArch != "" {
-		return cfg.EKSDefaults.NodeArch
+	if d := getProviderDefaults(); d != nil && d.NodeArch != "" {
+		return d.NodeArch
 	}
 	return "amd64"
 }
 
-// NewProvider creates a provider from environment variables
+// NewProvider creates a provider
 func NewProvider(t *testing.T, clusterName string) Provider {
 	t.Helper()
 

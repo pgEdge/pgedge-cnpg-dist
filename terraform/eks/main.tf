@@ -238,7 +238,10 @@ resource "aws_eks_cluster" "this" {
   role_arn = aws_iam_role.cluster.arn
 
   vpc_config {
-    subnet_ids = concat(aws_subnet.private[*].id, aws_subnet.public[*].id)
+    subnet_ids              = concat(aws_subnet.private[*].id, aws_subnet.public[*].id)
+    endpoint_private_access = true
+    endpoint_public_access  = true
+    public_access_cidrs     = var.eks_api_allowed_cidrs
   }
 
   depends_on = [

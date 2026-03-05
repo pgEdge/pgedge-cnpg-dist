@@ -139,13 +139,14 @@ make test-comprehensive
 
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) v2
 - [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.0
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) (invoked directly by terratest)
 - AWS credentials configured (`aws configure` or `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` env vars)
 
 #### Run Tests
 
 ```bash
 # Infrastructure validation on EKS
-CLUSTER_PROVIDER=eks go test ./tests -run TestInfra -v -timeout 30m
+CLUSTER_PROVIDER=eks go test ./tests -run TestInfra -v -timeout 60m
 
 # Upstream E2E tests on EKS
 CLUSTER_PROVIDER=eks go test ./tests -run TestUpstream -v -timeout 4h

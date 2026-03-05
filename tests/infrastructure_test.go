@@ -17,6 +17,8 @@ func TestInfra(t *testing.T) {
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err, "Failed to load configuration")
 
+	t.Logf("Test execution: Kubernetes=%s  Provider=%s", providers.GetKubernetesVersion(), providers.GetProviderType())
+
 	// Create cluster using provider from environment
 	provider := providers.NewProvider(t, "cnpg-infra-test")
 	providers.Setup(t, provider)
@@ -77,6 +79,9 @@ func TestOperator(t *testing.T) {
 	// Get CNPG version from environment or use default
 	cnpgVersion, err := cfg.GetCNPGVersionFromEnv()
 	require.NoError(t, err, "Failed to get CNPG version")
+
+	t.Logf("Test execution: CNPG=%s  Kubernetes=%s  Provider=%s",
+		cnpgVersion.Version, providers.GetKubernetesVersion(), providers.GetProviderType())
 
 	// Create cluster using provider from environment
 	provider := providers.NewProvider(t, "cnpg-operator-test")

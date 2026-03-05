@@ -1,10 +1,50 @@
 package providers
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/k8s"
 )
+
+// installImageValidationPolicy is shared across providers: finds the project root,
+// locates the policy YAML, and applies it via kubectl.
+func installImageValidationPolicy(t *testing.T, opts *k8s.KubectlOptions) error {
+	t.Helper()
+
+	t.Log("Installing image validation policy to block non-pgEdge PostgreSQL images")
+
+	projectRoot, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
+			break
+		}
+		parent := filepath.Dir(projectRoot)
+		if parent == projectRoot {
+			return fmt.Errorf("could not find project root (go.mod not found)")
+		}
+		projectRoot = parent
+	}
+
+	policyPath := filepath.Join(projectRoot, "tests", "manifests", "image-validation-policy.yaml")
+
+	if _, err := os.Stat(policyPath); os.IsNotExist(err) {
+		return fmt.Errorf("image validation policy not found at %s", policyPath)
+	}
+
+	if err := k8s.RunKubectlE(t, opts, "apply", "-f", policyPath); err != nil {
+		return fmt.Errorf("failed to apply image validation policy: %w", err)
+	}
+
+	t.Log("Image validation policy installed - only pgEdge PostgreSQL images will be allowed")
+	return nil
+}
 
 // Provider represents a Kubernetes cluster provider (Kind, EKS, AKS, GKE, etc.)
 type Provider interface {

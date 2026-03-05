@@ -17,6 +17,7 @@ users:
     exec:
       apiVersion: client.authentication.k8s.io/v1beta1
       command: aws
+      interactiveMode: Never
       args:
         - eks
         - get-token

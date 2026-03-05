@@ -25,6 +25,9 @@ func TestImageValidation(t *testing.T) {
 	cnpgVersion := cfg.CNPGVersions[0]
 	postgresVersion := cnpgVersion.PostgresVersions[0]
 
+	t.Logf("Test execution: CNPG=%s  PostgreSQL=%s  Kubernetes=%s  Provider=%s",
+		cnpgVersion.Version, postgresVersion, providers.GetKubernetesVersion(), providers.GetProviderType())
+
 	// Get pgEdge PostgreSQL image
 	pgEdgeImage := cfg.GetPostgresImageName(
 		cfg.PostgresImages.DefaultRegistry,
