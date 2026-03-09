@@ -17,12 +17,20 @@ func TestInfra(t *testing.T) {
 	cfg, err := config.LoadConfig()
 	require.NoError(t, err, "Failed to load configuration")
 
+	t.Logf("Test execution: Kubernetes=%s  Provider=%s", providers.GetKubernetesVersion(), providers.GetProviderType())
+
 	// Create cluster using provider from environment
-	provider := providers.CreateFromEnv(t, "cnpg-infra-test")
+	provider := providers.NewProvider(t, "cnpg-infra-test")
 	providers.Setup(t, provider)
 
 	// Get expected node count from environment or use default
 	expectedNodes := providers.GetNodeCount()
+
+	// Get storage config for the active provider
+	storageConfig, ok := cfg.GetStorageConfig(providers.GetProviderType())
+	if !ok {
+		t.Fatalf("no storage config found for provider %s", providers.GetProviderType())
+	}
 
 	// Verify cluster is functional
 	t.Run("Verify cluster has correct number of nodes", func(t *testing.T) {
@@ -39,12 +47,12 @@ func TestInfra(t *testing.T) {
 
 		found := false
 		for _, sc := range storageClasses {
-			if sc == cfg.KindDefaults.Storage.CSIClass {
+			if sc == storageConfig.CSIClass {
 				found = true
 				break
 			}
 		}
-		require.True(t, found, "CSI storage class %s not found", cfg.KindDefaults.Storage.CSIClass)
+		require.True(t, found, "CSI storage class %s not found", storageConfig.CSIClass)
 	})
 
 	t.Run("Verify volume snapshot class exists", func(t *testing.T) {
@@ -54,12 +62,12 @@ func TestInfra(t *testing.T) {
 
 		found := false
 		for _, vsc := range snapshotClasses {
-			if vsc == cfg.KindDefaults.Storage.SnapshotClass {
+			if vsc == storageConfig.SnapshotClass {
 				found = true
 				break
 			}
 		}
-		require.True(t, found, "Volume snapshot class %s not found", cfg.KindDefaults.Storage.SnapshotClass)
+		require.True(t, found, "Volume snapshot class %s not found", storageConfig.SnapshotClass)
 	})
 }
 
@@ -75,8 +83,11 @@ func TestOperator(t *testing.T) {
 	cnpgVersion, err := cfg.GetCNPGVersionFromEnv()
 	require.NoError(t, err, "Failed to get CNPG version")
 
+	t.Logf("Test execution: CNPG=%s  Kubernetes=%s  Provider=%s",
+		cnpgVersion.Version, providers.GetKubernetesVersion(), providers.GetProviderType())
+
 	// Create cluster using provider from environment
-	provider := providers.CreateFromEnv(t, "cnpg-operator-test")
+	provider := providers.NewProvider(t, "cnpg-operator-test")
 	providers.Setup(t, provider)
 
 	// Deploy CNPG operator from manifest (no Helm, tests the static YAML)

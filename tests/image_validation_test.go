@@ -19,11 +19,14 @@ func TestImageValidation(t *testing.T) {
 	require.NoError(t, err, "Failed to load configuration")
 
 	// Create cluster using provider from environment (this will install the policy)
-	provider := providers.CreateFromEnv(t, "cnpg-image-validation-test")
+	provider := providers.NewProvider(t, "cnpg-image-validation-test")
 	providers.Setup(t, provider)
 
 	cnpgVersion := cfg.CNPGVersions[0]
 	postgresVersion := cnpgVersion.PostgresVersions[0]
+
+	t.Logf("Test execution: CNPG=%s  PostgreSQL=%s  Kubernetes=%s  Provider=%s",
+		cnpgVersion.Version, postgresVersion, providers.GetKubernetesVersion(), providers.GetProviderType())
 
 	// Get pgEdge PostgreSQL image
 	pgEdgeImage := cfg.GetPostgresImageName(

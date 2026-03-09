@@ -9,12 +9,10 @@ import (
 
 // Config represents the complete test configuration loaded from versions.yaml
 type Config struct {
-	CNPGVersions             []CNPGVersion                   `yaml:"cnpg_versions"`
-	PostgresImages           PostgresImages                  `yaml:"postgres_images"`
-	TestDefaults             TestDefaults                    `yaml:"test_defaults"`
-	KindDefaults             KindDefaults                    `yaml:"kind_defaults"`
-	KubernetesVersions       map[string]KubernetesVersion    `yaml:"kubernetes_versions"`
-	DefaultKubernetesVersion string                          `yaml:"default_kubernetes_version"`
+	CNPGVersions     []CNPGVersion               `yaml:"cnpg_versions"`
+	PostgresImages   PostgresImages              `yaml:"postgres_images"`
+	TestDefaults     TestDefaults                `yaml:"test_defaults"`
+	ProviderDefaults map[string]ProviderDefaults `yaml:"provider_defaults"`
 }
 
 // CNPGVersion represents a specific CNPG version configuration
@@ -62,12 +60,23 @@ type TestDefaults struct {
 	Provider    string `yaml:"provider"`
 }
 
-// KindDefaults represents Kind cluster defaults
-type KindDefaults struct {
-	Image      string         `yaml:"image"`
-	Nodes      int            `yaml:"nodes"`
-	Networking KindNetworking `yaml:"networking"`
-	Storage    StorageConfig  `yaml:"storage"`
+// ProviderDefaults represents defaults for a cluster provider (kind, eks, etc.)
+type ProviderDefaults struct {
+	// Common
+	KubernetesVersion string        `yaml:"kubernetes_version"`
+	NodeCount         int           `yaml:"node_count"`
+	Storage           StorageConfig `yaml:"storage"`
+	// Manifests to apply after cluster creation (e.g. snapshot CRDs, controllers)
+	Manifests []Manifest `yaml:"manifests"`
+	// Kind-specific
+	Image                      string                       `yaml:"image"`
+	Networking                 KindNetworking               `yaml:"networking"`
+	DefaultKubernetesVersion   string                       `yaml:"default_kubernetes_version"`
+	KubernetesVersionManifests map[string]KubernetesVersion `yaml:"kubernetes_version_manifests"`
+	// Cloud provider-specific
+	Region       string `yaml:"region"`
+	InstanceType string `yaml:"instance_type"`
+	NodeArch     string `yaml:"node_arch"`
 }
 
 // KindNetworking represents Kind networking configuration
@@ -83,6 +92,15 @@ type StorageConfig struct {
 	SnapshotClass string `yaml:"snapshot_class"`
 }
 
+// GetStorageConfig returns the storage configuration for the given provider type.
+// The second return value is false when no defaults are configured for the provider.
+func (c *Config) GetStorageConfig(providerType string) (StorageConfig, bool) {
+	if defaults, ok := c.ProviderDefaults[providerType]; ok {
+		return defaults.Storage, true
+	}
+	return StorageConfig{}, false
+}
+
 // KubernetesVersion represents K8s version-specific configuration
 type KubernetesVersion struct {
 	Manifests []Manifest `yaml:"manifests"`
@@ -92,43 +110,6 @@ type KubernetesVersion struct {
 type Manifest struct {
 	Name string `yaml:"name"`
 	URL  string `yaml:"url"`
-}
-
-// GetManifests returns the list of manifests for a given K8s version
-func (c *Config) GetManifests(k8sVersion string) []Manifest {
-	// Extract major.minor from version like "v1.32.0" or "1.32"
-	var majorMinor string
-	for i := 0; i < len(k8sVersion); i++ {
-		if k8sVersion[i] >= '0' && k8sVersion[i] <= '9' {
-			// Found start of version number
-			end := i
-			dotCount := 0
-			for end < len(k8sVersion) && dotCount < 2 {
-				if k8sVersion[end] == '.' {
-					dotCount++
-					if dotCount == 2 {
-						break
-					}
-				}
-				end++
-			}
-			majorMinor = k8sVersion[i:end]
-			break
-		}
-	}
-
-	// Look up manifests for this K8s version
-	if versionConfig, ok := c.KubernetesVersions[majorMinor]; ok {
-		return versionConfig.Manifests
-	}
-
-	// Fallback to default version
-	if versionConfig, ok := c.KubernetesVersions[c.DefaultKubernetesVersion]; ok {
-		return versionConfig.Manifests
-	}
-
-	// Return empty list if nothing found
-	return []Manifest{}
 }
 
 // LoadConfig loads the configuration from versions.yaml
@@ -216,6 +197,7 @@ func (v *CNPGVersion) GetPostgresVersionFromEnv() string {
 	if version == "" {
 		// Return first version as default (should be the latest, e.g., "18")
 		if len(v.PostgresVersions) == 0 {
+			// TODO: replace hardcoded fallback with a configurable default
 			return "17" // Fallback if no versions defined
 		}
 		return v.PostgresVersions[0]
@@ -228,9 +210,12 @@ func (v *CNPGVersion) GetPostgresVersionFromEnv() string {
 		}
 	}
 
-	// If not found, return first (default) version
+	// If not found, warn and fall back to first (default) version
 	if len(v.PostgresVersions) > 0 {
+		fmt.Printf("WARNING: PostgreSQL version %q is not in the supported list %v for CNPG %s, falling back to default %q\n",
+			version, v.PostgresVersions, v.Version, v.PostgresVersions[0])
 		return v.PostgresVersions[0]
 	}
+	// TODO: replace hardcoded fallback with a configurable default
 	return "17"
 }

@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -168,9 +167,6 @@ func (kc *kindCluster) GetKubectlOptions(namespace string) *k8s.KubectlOptions {
 func (kc *kindCluster) waitForClusterReady(t *testing.T, timeout time.Duration) error {
 	t.Helper()
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
 	opts := kc.GetKubectlOptions("")
 
 	// Wait for all nodes to be ready
@@ -199,22 +195,27 @@ func (kc *kindCluster) waitForClusterReady(t *testing.T, timeout time.Duration) 
 	}
 
 	// Wait for system pods by checking with kubectl
+	var lastPodErr error
+	podFound := false
 	for i := 0; i < maxRetries; i++ {
-		output, podErr := k8s.RunKubectlAndGetOutputE(t, opts, "get", "pods", "-n", "kube-system", "-o", "jsonpath={.items[*].metadata.name}")
-		if podErr == nil && output != "" {
+		var output string
+		output, lastPodErr = k8s.RunKubectlAndGetOutputE(t, opts, "get", "pods", "-n", "kube-system", "-o", "jsonpath={.items[*].metadata.name}")
+		if lastPodErr == nil && output != "" {
+			podFound = true
 			break
 		}
 		if i < maxRetries-1 {
 			time.Sleep(5 * time.Second)
 		}
 	}
-
-	select {
-	case <-ctx.Done():
-		return fmt.Errorf("timeout waiting for cluster ready")
-	default:
-		return nil
+	if !podFound {
+		if lastPodErr != nil {
+			return fmt.Errorf("kube-system pods not available: %w", lastPodErr)
+		}
+		return fmt.Errorf("kube-system pods not available after %d retries", maxRetries)
 	}
+
+	return nil
 }
 
 // InstallCSIDriver installs the CSI hostpath driver for storage support
@@ -235,8 +236,21 @@ func (kc *kindCluster) InstallCSIDriver(t *testing.T) error {
 	k8sVersion := extractK8sVersion(kc.Config.Image)
 	t.Logf("Using K8s version %s", k8sVersion)
 
-	// Get manifests for this K8s version
-	manifests := cfg.GetManifests(k8sVersion)
+	// Get manifests for this K8s version from provider_defaults.kind
+	kindDefaults, ok := cfg.ProviderDefaults["kind"]
+	if !ok {
+		return fmt.Errorf("no kind provider defaults found in versions.yaml")
+	}
+	versionEntry, found := kindDefaults.KubernetesVersionManifests[k8sVersion]
+	if !found {
+		// Fall back to default K8s version
+		versionEntry, found = kindDefaults.KubernetesVersionManifests[kindDefaults.DefaultKubernetesVersion]
+		if !found {
+			return fmt.Errorf("no manifests found for K8s version %s (and no default)", k8sVersion)
+		}
+		t.Logf("No manifests for K8s version %s, falling back to default %s", k8sVersion, kindDefaults.DefaultKubernetesVersion)
+	}
+	manifests := versionEntry.Manifests
 	if len(manifests) == 0 {
 		return fmt.Errorf("no manifests found for K8s version %s", k8sVersion)
 	}
@@ -306,44 +320,7 @@ parameters:
 // InstallImageValidationPolicy installs the ValidatingAdmissionPolicy to block non-pgEdge images
 func (kc *kindCluster) InstallImageValidationPolicy(t *testing.T) error {
 	t.Helper()
-
-	t.Log("Installing image validation policy to block non-pgEdge PostgreSQL images")
-
-	opts := kc.GetKubectlOptions("")
-
-	// Find the manifests directory
-	// Look for project root by finding go.mod
-	projectRoot, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	for {
-		if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
-			break
-		}
-		parent := filepath.Dir(projectRoot)
-		if parent == projectRoot {
-			return fmt.Errorf("could not find project root (go.mod not found)")
-		}
-		projectRoot = parent
-	}
-
-	policyPath := filepath.Join(projectRoot, "tests", "manifests", "image-validation-policy.yaml")
-
-	// Check if policy file exists
-	if _, err := os.Stat(policyPath); os.IsNotExist(err) {
-		return fmt.Errorf("image validation policy not found at %s", policyPath)
-	}
-
-	// Apply the policy
-	err = k8s.RunKubectlE(t, opts, "apply", "-f", policyPath)
-	if err != nil {
-		return fmt.Errorf("failed to apply image validation policy: %w", err)
-	}
-
-	t.Log("Image validation policy installed - only pgEdge PostgreSQL images will be allowed")
-	return nil
+	return installImageValidationPolicy(t, kc.GetKubectlOptions(""))
 }
 
 // extractK8sVersion extracts the major.minor version from a Kind node image name
