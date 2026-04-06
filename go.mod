@@ -1,6 +1,6 @@
 module github.com/pgedge/pgedge-cnpg-dist
 
-go 1.24.0
+go 1.25.8
 
 require (
 	github.com/gruntwork-io/terratest v0.48.1
@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.1.0 // indirect
+	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alessio/shellescape v1.4.2 // indirect

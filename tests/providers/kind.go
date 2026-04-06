@@ -218,55 +218,62 @@ func (kc *kindCluster) waitForClusterReady(t *testing.T, timeout time.Duration) 
 	return nil
 }
 
-// InstallCSIDriver installs the CSI hostpath driver for storage support
-func (kc *kindCluster) InstallCSIDriver(t *testing.T) error {
+// resolveCSIManifests returns the CSI manifests for the given K8s version,
+// falling back to the configured default version if an exact match is not found.
+func resolveCSIManifests(t *testing.T, cfg *config.Config, k8sVersion string) ([]config.Manifest, error) {
 	t.Helper()
-
-	t.Log("Installing CSI hostpath driver")
-
-	opts := kc.GetKubectlOptions("")
-
-	// Load configuration
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	// Extract K8s version from Kind node image (e.g., "kindest/node:v1.32.0" -> "1.32")
-	k8sVersion := extractK8sVersion(kc.Config.Image)
-	t.Logf("Using K8s version %s", k8sVersion)
-
-	// Get manifests for this K8s version from provider_defaults.kind
 	kindDefaults, ok := cfg.ProviderDefaults["kind"]
 	if !ok {
-		return fmt.Errorf("no kind provider defaults found in versions.yaml")
+		return nil, fmt.Errorf("no kind provider defaults found in versions.yaml")
 	}
-	versionEntry, found := kindDefaults.KubernetesVersionManifests[k8sVersion]
+	entry, found := kindDefaults.KubernetesVersionManifests[k8sVersion]
 	if !found {
-		// Fall back to default K8s version
-		versionEntry, found = kindDefaults.KubernetesVersionManifests[kindDefaults.DefaultKubernetesVersion]
-		if !found {
-			return fmt.Errorf("no manifests found for K8s version %s (and no default)", k8sVersion)
-		}
 		t.Logf("No manifests for K8s version %s, falling back to default %s", k8sVersion, kindDefaults.DefaultKubernetesVersion)
+		entry, found = kindDefaults.KubernetesVersionManifests[kindDefaults.DefaultKubernetesVersion]
+		if !found {
+			return nil, fmt.Errorf("no manifests found for K8s version %s (and no default)", k8sVersion)
+		}
 	}
-	manifests := versionEntry.Manifests
-	if len(manifests) == 0 {
-		return fmt.Errorf("no manifests found for K8s version %s", k8sVersion)
+	if len(entry.Manifests) == 0 {
+		return nil, fmt.Errorf("no manifests found for K8s version %s", k8sVersion)
 	}
+	return entry.Manifests, nil
+}
 
-	// Apply each manifest
+// applyCSIManifests applies each manifest URL via kubectl apply.
+func applyCSIManifests(t *testing.T, opts *k8s.KubectlOptions, manifests []config.Manifest) error {
+	t.Helper()
 	for _, m := range manifests {
 		t.Logf("Applying %s", m.Name)
-		err = k8s.RunKubectlE(t, opts, "apply", "-f", m.URL)
-		if err != nil {
+		if err := k8s.RunKubectlE(t, opts, "apply", "-f", m.URL); err != nil {
 			return fmt.Errorf("failed to apply %s: %w", m.Name, err)
 		}
 	}
+	return nil
+}
 
-	// Create storage class
+// waitForCSIPods polls until the CSI hostpath plugin pods appear or times out.
+func waitForCSIPods(t *testing.T, opts *k8s.KubectlOptions) error {
+	t.Helper()
+	for i := 0; i < 60; i++ {
+		output, podErr := k8s.RunKubectlAndGetOutputE(t, opts, "get", "pods", "-n", "default",
+			"-l", "app.kubernetes.io/name=csi-hostpathplugin", "-o", "jsonpath={.items[*].metadata.name}")
+		if podErr == nil && output != "" {
+			t.Logf("CSI driver pods found: %s", output)
+			return nil
+		}
+		if i < 59 {
+			time.Sleep(5 * time.Second)
+		}
+	}
+	return fmt.Errorf("CSI driver pods not created after 5 minutes")
+}
+
+// applyKindStorageClass creates the CSI hostpath StorageClass.
+func applyKindStorageClass(t *testing.T, opts *k8s.KubectlOptions) error {
+	t.Helper()
 	t.Log("Creating storage class")
-	storageClass := `
+	manifest := `
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -276,14 +283,17 @@ reclaimPolicy: Delete
 volumeBindingMode: Immediate
 allowVolumeExpansion: true
 `
-	err = k8s.KubectlApplyFromStringE(t, opts, storageClass)
-	if err != nil {
+	if err := k8s.KubectlApplyFromStringE(t, opts, manifest); err != nil {
 		return fmt.Errorf("failed to create storage class: %w", err)
 	}
+	return nil
+}
 
-	// Create volume snapshot class
+// applyKindSnapshotClass creates the CSI hostpath VolumeSnapshotClass.
+func applyKindSnapshotClass(t *testing.T, opts *k8s.KubectlOptions) error {
+	t.Helper()
 	t.Log("Creating volume snapshot class")
-	snapshotClass := `
+	manifest := `
 apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
 metadata:
@@ -293,24 +303,48 @@ deletionPolicy: Delete
 parameters:
   ignoreFailedRead: "true"
 `
-	err = k8s.KubectlApplyFromStringE(t, opts, snapshotClass)
-	if err != nil {
+	if err := k8s.KubectlApplyFromStringE(t, opts, manifest); err != nil {
 		return fmt.Errorf("failed to create snapshot class: %w", err)
 	}
+	return nil
+}
 
-	// Wait for CSI driver to be ready
+// InstallCSIDriver installs the CSI hostpath driver for storage support
+func (kc *kindCluster) InstallCSIDriver(t *testing.T) error {
+	t.Helper()
+
+	t.Log("Installing CSI hostpath driver")
+
+	opts := kc.GetKubectlOptions("")
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	k8sVersion := extractK8sVersion(kc.Config.Image)
+	t.Logf("Using K8s version %s", k8sVersion)
+
+	manifests, err := resolveCSIManifests(t, cfg, k8sVersion)
+	if err != nil {
+		return err
+	}
+
+	if err := applyCSIManifests(t, opts, manifests); err != nil {
+		return err
+	}
+
+	if err := applyKindStorageClass(t, opts); err != nil {
+		return err
+	}
+
+	if err := applyKindSnapshotClass(t, opts); err != nil {
+		return err
+	}
+
 	t.Log("Waiting for CSI driver pods to be ready")
-	for i := 0; i < 60; i++ {
-		output, podErr := k8s.RunKubectlAndGetOutputE(t, opts, "get", "pods", "-n", "default", "-l", "app.kubernetes.io/name=csi-hostpathplugin", "-o", "jsonpath={.items[*].metadata.name}")
-		if podErr == nil && output != "" {
-			t.Logf("CSI driver pods found: %s", output)
-			break
-		}
-		if i < 59 {
-			time.Sleep(5 * time.Second)
-		} else {
-			return fmt.Errorf("CSI driver pods not created after 5 minutes")
-		}
+	if err := waitForCSIPods(t, opts); err != nil {
+		return err
 	}
 
 	t.Log("CSI hostpath driver installed successfully")
