@@ -156,31 +156,30 @@ func (e *EKS) GetKubectlOptions(namespace string) *k8s.KubectlOptions {
 	return k8s.NewKubectlOptions("", e.kubeConfigPath, namespace)
 }
 
-// InstallCSIDriver verifies the EBS CSI driver (already installed via Terraform addon)
-// and creates the storage class and volume snapshot class
-func (e *EKS) InstallCSIDriver(t *testing.T) error {
+// waitForEBSCSIPods polls until the EBS CSI driver pods are running or times out.
+func waitForEBSCSIPods(t *testing.T, opts *k8s.KubectlOptions) error {
 	t.Helper()
-
-	t.Log("Verifying AWS EBS CSI driver (installed via Terraform)")
-
-	opts := e.GetKubectlOptions("")
-
-	// Wait for the EBS CSI driver pods to be ready (addon installed by Terraform)
-	t.Log("Waiting for EBS CSI driver pods to be ready")
 	for i := 0; i < 60; i++ {
-		output, podErr := k8s.RunKubectlAndGetOutputE(t, opts, "get", "pods", "-n", "kube-system", "-l", "app.kubernetes.io/name=aws-ebs-csi-driver", "-o", "jsonpath={.items[*].status.phase}")
-		if podErr == nil && output != "" && !strings.Contains(output, "Pending") && !strings.Contains(output, "Failed") && !strings.Contains(output, "Unknown") {
+		output, podErr := k8s.RunKubectlAndGetOutputE(t, opts, "get", "pods",
+			"-n", "kube-system", "-l", "app.kubernetes.io/name=aws-ebs-csi-driver",
+			"-o", "jsonpath={.items[*].status.phase}")
+		if podErr == nil && output != "" &&
+			!strings.Contains(output, "Pending") &&
+			!strings.Contains(output, "Failed") &&
+			!strings.Contains(output, "Unknown") {
 			t.Logf("EBS CSI driver pods are running")
-			break
+			return nil
 		}
 		if i < 59 {
 			time.Sleep(5 * time.Second)
-		} else {
-			return fmt.Errorf("EBS CSI driver pods not ready after 5 minutes")
 		}
 	}
+	return fmt.Errorf("EBS CSI driver pods not ready after 5 minutes")
+}
 
-	// Install manifests from versions.yaml (snapshot CRDs + snapshot controller)
+// applyEKSManifests loads the EKS provider manifests from config and applies them.
+func applyEKSManifests(t *testing.T, opts *k8s.KubectlOptions) error {
+	t.Helper()
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
@@ -195,8 +194,27 @@ func (e *EKS) InstallCSIDriver(t *testing.T) error {
 			return fmt.Errorf("failed to apply %s: %w", m.Name, err)
 		}
 	}
+	return nil
+}
 
-	// Create a gp3 storage class
+// InstallCSIDriver verifies the EBS CSI driver (already installed via Terraform addon)
+// and creates the storage class and volume snapshot class
+func (e *EKS) InstallCSIDriver(t *testing.T) error {
+	t.Helper()
+
+	t.Log("Verifying AWS EBS CSI driver (installed via Terraform)")
+
+	opts := e.GetKubectlOptions("")
+
+	t.Log("Waiting for EBS CSI driver pods to be ready")
+	if err := waitForEBSCSIPods(t, opts); err != nil {
+		return err
+	}
+
+	if err := applyEKSManifests(t, opts); err != nil {
+		return err
+	}
+
 	t.Log("Creating gp3 storage class")
 	storageClass := `
 apiVersion: storage.k8s.io/v1
@@ -214,7 +232,6 @@ allowVolumeExpansion: true
 		return fmt.Errorf("failed to create gp3 storage class: %w", err)
 	}
 
-	// Create volume snapshot class
 	t.Log("Creating volume snapshot class")
 	snapshotClass := `
 apiVersion: snapshot.storage.k8s.io/v1

@@ -179,38 +179,42 @@ func CreateSecret(t *testing.T, opts *k8s.KubectlOptions, name string, data map[
 	return nil
 }
 
+// checkPodsReady returns true if at least expectedCount pods matching labelSelector are ready.
+func checkPodsReady(configPath, namespace, labelSelector string, expectedCount int) (bool, error) {
+	clientset, err := getClientset(configPath)
+	if err != nil {
+		return false, err
+	}
+	pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return false, err
+	}
+	if len(pods.Items) < expectedCount {
+		return false, nil
+	}
+	readyCount := 0
+	for _, pod := range pods.Items {
+		if isPodReady(&pod) {
+			readyCount++
+		}
+	}
+	return readyCount >= expectedCount, nil
+}
+
 // WaitForPodsReady waits for a number of pods matching a label selector to be ready
 func WaitForPodsReady(t *testing.T, opts *k8s.KubectlOptions, labelSelector string, expectedCount int, retries int) error {
 	t.Helper()
 
 	var lastErr error
 	for i := 0; i < retries; i++ {
-		clientset, err := getClientset(opts.ConfigPath)
+		ready, err := checkPodsReady(opts.ConfigPath, opts.Namespace, labelSelector, expectedCount)
 		if err != nil {
 			lastErr = err
 			continue
 		}
-
-		pods, err := clientset.CoreV1().Pods(opts.Namespace).List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelSelector,
-		})
-		if err != nil {
-			lastErr = err
-			continue
-		}
-
-		if len(pods.Items) < expectedCount {
-			continue
-		}
-
-		readyCount := 0
-		for _, pod := range pods.Items {
-			if isPodReady(&pod) {
-				readyCount++
-			}
-		}
-
-		if readyCount >= expectedCount {
+		if ready {
 			return nil
 		}
 	}
