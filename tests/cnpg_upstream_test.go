@@ -163,7 +163,7 @@ func buildE2EEnv(kubeconfigPath, postgresImage string, storageConfig config.Stor
 		fmt.Sprintf("KUBECONFIG=%s", kubeconfigPath),
 		fmt.Sprintf("POSTGRES_IMG=%s", postgresImage),
 		"TEST_UPGRADE_TO_V1=false",
-		"TEST_CLOUD_VENDOR=local",
+		"TEST_CLOUD_VENDOR=kind",
 		fmt.Sprintf("E2E_DEFAULT_STORAGE_CLASS=%s", storageConfig.CSIClass),
 		fmt.Sprintf("E2E_CSI_STORAGE_CLASS=%s", storageConfig.CSIClass),
 		fmt.Sprintf("E2E_DEFAULT_VOLUMESNAPSHOT_CLASS=%s", storageConfig.SnapshotClass),
