@@ -27,7 +27,9 @@ We rebuild and publish CloudNativePG operator images from upstream source:
 | CloudNativePG Operator | [cloudnative-pg/cloudnative-pg](https://github.com/cloudnative-pg/cloudnative-pg) | `ghcr.io/pgedge/cloudnative-pg` |
 | Barman Cloud Plugin | [cloudnative-pg/plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud) | `ghcr.io/pgedge/plugin-barman-cloud-*` |
 
-Images are built via GitHub Actions workflows from upstream source tags without modification.
+Images are built via GitHub Actions workflows from upstream source tags with the following modifications:
+
+- **Go toolchain pinning**: `GOTOOLCHAIN` is set to a minimum patched version at build time to fix Go stdlib CVEs present in the upstream toolchain. This does not change any source code — only the Go toolchain version used to compile the binaries.
 
 ## kubectl Plugin
 
