@@ -45,7 +45,7 @@ We redistribute CloudNativePG Helm charts with modifications to use pgEdge-built
 
 | Chart | Latest Version | Upstream Source |
 |-------|----------|-----------------|
-| `charts/cloudnative-pg/` | v0.27.1 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
+| `charts/cloudnative-pg/` | v0.28.0 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
 | `charts/plugin-barman-cloud/` | v0.5.0 | [cloudnative-pg/plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud) |
 
 **Modification:** Default image references changed to `ghcr.io/pgedge/` registry.
@@ -85,8 +85,9 @@ We redistribute CloudNativePG installation manifests with modifications to use p
 
 | Version | Upstream Source |
 |---------|-----------------|
-| v1.27.3 | [cloudnative-pg v1.27.3](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.27.3) |
-| v1.28.1 | [cloudnative-pg v1.28.1](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.28.1) |
+| v1.27.4 | [cloudnative-pg v1.27.4](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.27.4) |
+| v1.28.2 | [cloudnative-pg v1.28.2](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.28.2) |
+| v1.29.0 | [cloudnative-pg v1.29.0](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.29.0) |
 
 **Modification:** Operator image references changed to `ghcr.io/pgedge/` registry.
 
@@ -155,7 +156,7 @@ CLUSTER_PROVIDER=eks go test ./tests -run TestUpstream -v -timeout 4h
 ### Version-Specific Tests
 
 ```bash
-make test-cnpg-1.28.1       # Specific operator version
+make test-cnpg-1.29.0       # Specific operator version
 make test-pg-18             # Specific PostgreSQL version
 make test-all-cnpg          # All operator versions
 make test-all-postgres      # All PostgreSQL versions
@@ -182,14 +183,14 @@ Tests are configured via [`tests/config/versions.yaml`](tests/config/versions.ya
 
 ```yaml
 cnpg_versions:
-  - version: "1.28.1"
-    chart_version: "0.27.1"
-    git_tag: "v1.28.1"
-    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.28.1"
+  - version: "1.29.0"
+    chart_version: "0.28.0"
+    git_tag: "v1.29.0"
+    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.29.0"
     postgres_versions: ["18", "17", "16"]
     providers:
       kind:
-        kubernetes_versions: ["1.32", "1.33", "1.34"]
+        kubernetes_versions: ["1.33", "1.34", "1.35"]
 
 postgres_images:
   registries:
@@ -207,8 +208,8 @@ This repository contains components under different licenses:
 | Component | License | Location |
 |-----------|---------|----------|
 | pgEdge tests and tooling | [PostgreSQL License](LICENSE) | `tests/`, `.github/`, `Makefile` |
-| CloudNativePG charts | [Apache License 2.0](charts/cloudnative-pg/v0.27.1/LICENSE) | `charts/` |
-| CloudNativePG manifests | [Apache License 2.0](manifests/cloudnative-pg/v1.28.1/LICENSE) | `manifests/` |
+| CloudNativePG charts | [Apache License 2.0](charts/cloudnative-pg/v0.28.0/LICENSE) | `charts/` |
+| CloudNativePG manifests | [Apache License 2.0](manifests/cloudnative-pg/v1.29.0/LICENSE) | `manifests/` |
 
 See [NOTICE](NOTICE) for full attribution and trademark details.
 
