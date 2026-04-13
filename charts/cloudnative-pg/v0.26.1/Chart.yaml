@@ -39,6 +39,7 @@ home: https://cloudnative-pg.io
 maintainers:
   - name: phisco
     email: p.scorsolini@gmail.com
+# pgEdge modification: dependencies section commented out to remove Grafana dashboard subchart dependency
 #dependencies:
 #  - name: cluster
 #    alias: monitoring

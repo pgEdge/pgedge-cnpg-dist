@@ -1,0 +1,60 @@
+# Trivy ignore file for ghcr.io/pgedge/plugin-barman-cloud-plugin-internal:v0.11.0
+# Policy: OS packages are not updated beyond what RHEL 9 provides at build time.
+#         Go dependencies are not updated until upstream cloudnative-pg/plugin-barman-cloud
+#         releases a new tagged version with fixes. Fixes requiring go.mod source changes
+#         cannot be applied by a rebuild alone.
+# Note: Go stdlib CVEs are fixed by setting GOTOOLCHAIN=go1.25.9+auto in the build workflow.
+
+vulnerabilities:
+
+  # ── OS: glibc (glibc, glibc-common, glibc-minimal-langpack) ─────────────────
+  # No fix available in RHEL 9. Suppressed pending Red Hat packaging.
+
+  - id: CVE-2026-4046
+    statement: "glibc: no fixed version available in RHEL 9 at build time. Suppressed pending Red Hat packaging."
+  - id: CVE-2026-4437
+    statement: "glibc: no fixed version available in RHEL 9 at build time. Suppressed pending Red Hat packaging."
+  - id: CVE-2026-4438
+    statement: "glibc: no fixed version available in RHEL 9 at build time. Suppressed pending Red Hat packaging."
+
+  # ── OS: coreutils ────────────────────────────────────────────────────────────
+  # No fix available in RHEL 9. Suppressed pending Red Hat packaging.
+
+  - id: CVE-2025-5278
+    statement: "coreutils-single: no fixed version available in RHEL 9 at build time. Suppressed pending Red Hat packaging."
+
+  # ── OS: libgcc ───────────────────────────────────────────────────────────────
+  # Long-standing low-severity issue with no fix in RHEL 9.
+
+  - id: CVE-2022-27943
+    statement: "libgcc: long-standing low-severity issue with no fix in RHEL 9. Suppressed pending Red Hat packaging."
+
+  # ── OS: ncurses (ncurses-base, ncurses-libs) ─────────────────────────────────
+  # No fix available in RHEL 9. Suppressed pending Red Hat packaging.
+
+  - id: CVE-2023-50495
+    statement: "ncurses: no fixed version available in RHEL 9 at build time. Suppressed pending Red Hat packaging."
+
+  # ── OS: pcre2 (pcre2, pcre2-syntax) ─────────────────────────────────────────
+  # No fix available in RHEL 9. Suppressed pending Red Hat packaging.
+
+  - id: CVE-2022-41409
+    statement: "pcre2: long-standing low-severity issue with no fix in RHEL 9. Suppressed pending Red Hat packaging."
+
+  # ── Go binary: go.opentelemetry.io/otel/sdk ──────────────────────────────────
+  # Pinned at v1.38.0 in upstream plugin-barman-cloud v0.11.0 go.mod.
+  # Fix requires a go.mod source change — cannot be applied by rebuild alone.
+  # Suppressed pending upstream cloudnative-pg/plugin-barman-cloud releasing a new tag.
+
+  - id: CVE-2026-24051
+    statement: "go.opentelemetry.io/otel/sdk v1.38.0 pinned in upstream plugin-barman-cloud v0.11.0 go.mod; fix requires v1.40.0. Requires go.mod source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+  - id: CVE-2026-39883
+    statement: "go.opentelemetry.io/otel/sdk v1.38.0 pinned in upstream plugin-barman-cloud v0.11.0 go.mod; fix requires v1.43.0. Requires go.mod source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+
+  # ── Go binary: google.golang.org/grpc ────────────────────────────────────────
+  # Pinned at v1.78.0 in upstream plugin-barman-cloud v0.11.0 go.mod.
+  # Fix requires a go.mod source change — cannot be applied by rebuild alone.
+  # Suppressed pending upstream cloudnative-pg/plugin-barman-cloud releasing a new tag.
+
+  - id: CVE-2026-33186
+    statement: "google.golang.org/grpc v1.78.0 pinned in upstream plugin-barman-cloud v0.11.0 go.mod; fix requires v1.79.3. Requires go.mod source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."

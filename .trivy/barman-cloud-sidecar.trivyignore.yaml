@@ -1,0 +1,202 @@
+# Trivy ignore file for ghcr.io/pgedge/plugin-barman-cloud-sidecar-internal:v0.11.0
+# Policy: OS packages are not updated beyond what Debian trixie provides at build time.
+#         Go and Python dependencies are not updated until upstream cloudnative-pg/plugin-barman-cloud
+#         releases a new tagged version with fixes.
+# Note: Go stdlib CVEs are fixed by setting GOTOOLCHAIN=go1.25.9+auto in the build workflow.
+
+vulnerabilities:
+
+  # ── OS: glibc (libc-bin, libc6) ─────────────────────────────────────────────
+  # No fix available in Debian trixie. Suppressed pending Debian packaging.
+
+  - id: CVE-2026-4046
+    statement: "glibc: fix_deferred by Debian — no fixed package available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-4437
+    statement: "glibc: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-4438
+    statement: "glibc: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2010-4756
+    statement: "glibc: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+  - id: CVE-2018-20796
+    statement: "glibc: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+  - id: CVE-2019-1010022
+    statement: "glibc: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+  - id: CVE-2019-1010023
+    statement: "glibc: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+  - id: CVE-2019-1010024
+    statement: "glibc: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+  - id: CVE-2019-1010025
+    statement: "glibc: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+  - id: CVE-2019-9192
+    statement: "glibc: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+
+  # ── OS: krb5 (libgssapi-krb5-2, libk5crypto3, libkrb5-3, libkrb5support0) ──
+  # No fix available in Debian trixie. Suppressed pending Debian packaging.
+
+  - id: CVE-2018-5709
+    statement: "krb5: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+  - id: CVE-2024-26458
+    statement: "krb5: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2024-26461
+    statement: "krb5: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+
+  # ── OS: libexpat1 ────────────────────────────────────────────────────────────
+  # No fix available in Debian trixie. Suppressed pending Debian packaging.
+
+  - id: CVE-2026-25210
+    statement: "libexpat1: no fixed version available in Debian trixie at build time. Suppressed pending upstream libexpat fix and Debian packaging."
+  - id: CVE-2025-59375
+    statement: "libexpat1: no fixed version available in Debian trixie at build time. Suppressed pending upstream libexpat fix and Debian packaging."
+  - id: CVE-2025-66382
+    statement: "libexpat1: fix_deferred by Debian — no fixed package available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-32776
+    statement: "libexpat1: no fixed version available in Debian trixie at build time. Suppressed pending upstream libexpat fix and Debian packaging."
+  - id: CVE-2026-32777
+    statement: "libexpat1: no fixed version available in Debian trixie at build time. Suppressed pending upstream libexpat fix and Debian packaging."
+  - id: CVE-2026-32778
+    statement: "libexpat1: no fixed version available in Debian trixie at build time. Suppressed pending upstream libexpat fix and Debian packaging."
+  - id: CVE-2026-24515
+    statement: "libexpat1: no fixed version available in Debian trixie at build time. Suppressed pending upstream libexpat fix and Debian packaging."
+
+  # ── OS: ncurses (libncursesw6, libtinfo6) ────────────────────────────────────
+  # No fix available in Debian trixie. Suppressed pending Debian packaging.
+
+  - id: CVE-2025-69720
+    statement: "libncursesw6/libtinfo6: no fixed version available in Debian trixie at build time. Suppressed pending upstream ncurses fix and Debian packaging."
+  - id: CVE-2025-6141
+    statement: "libncursesw6/libtinfo6: no fixed version available in Debian trixie at build time. Suppressed pending upstream ncurses fix and Debian packaging."
+
+  # ── OS: xz/liblzma5 ──────────────────────────────────────────────────────────
+  # No fix available in Debian trixie. Suppressed pending Debian packaging.
+
+  - id: CVE-2026-34743
+    statement: "liblzma5: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+
+  # ── OS: libssl3t64 ───────────────────────────────────────────────────────────
+  # Fix exists at 3.5.5-1~deb13u2 but only 3.5.5-1~deb13u1 available at build time.
+
+  - id: CVE-2026-28390
+    statement: "libssl3t64: fix requires 3.5.5-1~deb13u2 but only 3.5.5-1~deb13u1 available in Debian trixie at build time. Suppressed pending Debian apt mirror update."
+  - id: CVE-2026-31790
+    statement: "libssl3t64: fix requires 3.5.5-1~deb13u2 but only 3.5.5-1~deb13u1 available in Debian trixie at build time. Suppressed pending Debian apt mirror update."
+  - id: CVE-2026-2673
+    statement: "libssl3t64: fix requires 3.5.5-1~deb13u2 but only 3.5.5-1~deb13u1 available in Debian trixie at build time. Suppressed pending Debian apt mirror update."
+  - id: CVE-2026-28387
+    statement: "libssl3t64: fix requires 3.5.5-1~deb13u2 but only 3.5.5-1~deb13u1 available in Debian trixie at build time. Suppressed pending Debian apt mirror update."
+  - id: CVE-2026-28388
+    statement: "libssl3t64: fix requires 3.5.5-1~deb13u2 but only 3.5.5-1~deb13u1 available in Debian trixie at build time. Suppressed pending Debian apt mirror update."
+  - id: CVE-2026-28389
+    statement: "libssl3t64: fix requires 3.5.5-1~deb13u2 but only 3.5.5-1~deb13u1 available in Debian trixie at build time. Suppressed pending Debian apt mirror update."
+  - id: CVE-2026-31789
+    statement: "libssl3t64: fix requires 3.5.5-1~deb13u2 but only 3.5.5-1~deb13u1 available in Debian trixie at build time. Suppressed pending Debian apt mirror update."
+
+  # ── OS: sqlite3 ──────────────────────────────────────────────────────────────
+  # No fix available in Debian trixie. Suppressed pending Debian packaging.
+
+  - id: CVE-2021-45346
+    statement: "libsqlite3-0: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+  - id: CVE-2025-70873
+    statement: "libsqlite3-0: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+
+  # ── OS: util-linux (libuuid1) ────────────────────────────────────────────────
+  # No fix available in Debian trixie. Suppressed pending Debian packaging.
+
+  - id: CVE-2026-27456
+    statement: "libuuid1/util-linux: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2022-0563
+    statement: "libuuid1/util-linux: long-standing low-severity issue with no fix in Debian trixie. Suppressed pending Debian packaging."
+  - id: CVE-2025-14104
+    statement: "libuuid1/util-linux: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-3184
+    statement: "libuuid1/util-linux: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+
+  # ── OS: zlib ─────────────────────────────────────────────────────────────────
+  # No fix available in Debian trixie. Suppressed pending Debian packaging.
+
+  - id: CVE-2026-27171
+    statement: "zlib1g: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+
+  # ── OS: Python 3.13 Debian packages ─────────────────────────────────────────
+  # No fix available in Debian trixie, or marked will_not_fix by Debian.
+  # Suppressed pending upstream CPython fix and Debian packaging.
+
+  - id: CVE-2025-15366
+    statement: "python3.13: marked will_not_fix by Debian for trixie. Suppressed pending upstream CPython fix."
+  - id: CVE-2025-15367
+    statement: "python3.13: marked will_not_fix by Debian for trixie. Suppressed pending upstream CPython fix."
+  - id: CVE-2025-8194
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-1299
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-4519
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2025-11468
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2025-12084
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2025-12781
+    statement: "python3.13: marked will_not_fix by Debian for trixie. Suppressed pending upstream CPython fix."
+  - id: CVE-2025-13837
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2025-15282
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2025-6069
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2025-6075
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2025-8291
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-0672
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-0865
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-3644
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-4224
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-2297
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2026-3479
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2025-13462
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+  - id: CVE-2025-13836
+    statement: "python3.13: no fixed version available in Debian trixie at build time. Suppressed pending Debian packaging."
+
+  # ── Go binary: go.opentelemetry.io/otel/sdk ──────────────────────────────────
+  # Pinned at v1.38.0 in upstream plugin-barman-cloud v0.11.0 go.mod.
+  # Fix requires a go.mod change which cannot be applied without a source update.
+  # Suppressed pending upstream cloudnative-pg/plugin-barman-cloud releasing a new tag.
+
+  - id: CVE-2026-39883
+    statement: "go.opentelemetry.io/otel/sdk v1.38.0 pinned in upstream plugin-barman-cloud v0.11.0 go.mod; fix requires v1.43.0. Requires go.mod source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+
+  # ── Go binary: google.golang.org/grpc ────────────────────────────────────────
+  # Pinned at v1.78.0 in upstream plugin-barman-cloud v0.11.0 go.mod.
+  # Fix requires a go.mod change which cannot be applied without a source update.
+  # Suppressed pending upstream cloudnative-pg/plugin-barman-cloud releasing a new tag.
+
+  - id: CVE-2026-33186
+    statement: "google.golang.org/grpc v1.78.0 pinned in upstream plugin-barman-cloud v0.11.0 go.mod; fix requires v1.79.3. Requires go.mod source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+  - id: CVE-2026-24051
+    statement: "go.opentelemetry.io/otel/sdk v1.38.0 pinned in upstream plugin-barman-cloud v0.11.0 go.mod; fix requires v1.40.0. Requires go.mod source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+
+  # ── Python packages (venv) ───────────────────────────────────────────────────
+  # Versions pinned in upstream plugin-barman-cloud v0.11.0 sidecar-requirements.txt.
+  # Fix requires a sidecar-requirements.txt change which cannot be applied without a source update.
+  # Suppressed pending upstream cloudnative-pg/plugin-barman-cloud releasing a new tag.
+
+  - id: CVE-2026-32597
+    statement: "PyJWT 2.10.1 pinned in upstream plugin-barman-cloud v0.11.0 sidecar-requirements.txt; fix requires 2.12.0. Requires sidecar-requirements.txt source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+  - id: CVE-2026-0994
+    statement: "protobuf 6.33.4 pinned in upstream plugin-barman-cloud v0.11.0 sidecar-requirements.txt; fix requires 6.33.5. Requires sidecar-requirements.txt source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+  - id: CVE-2026-26007
+    statement: "cryptography 46.0.4 pinned in upstream plugin-barman-cloud v0.11.0 sidecar-requirements.txt; fix requires 46.0.5. Requires sidecar-requirements.txt source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+  - id: CVE-2026-39892
+    statement: "cryptography 46.0.4 pinned in upstream plugin-barman-cloud v0.11.0 sidecar-requirements.txt; fix requires 46.0.7. Requires sidecar-requirements.txt source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+  - id: CVE-2026-34073
+    statement: "cryptography 46.0.4 pinned in upstream plugin-barman-cloud v0.11.0 sidecar-requirements.txt; fix requires 46.0.6. Requires sidecar-requirements.txt source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+  - id: CVE-2026-30922
+    statement: "pyasn1 0.6.2 pinned in upstream plugin-barman-cloud v0.11.0 sidecar-requirements.txt; fix requires 0.6.3. Requires sidecar-requirements.txt source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."
+  - id: CVE-2026-25645
+    statement: "requests 2.32.5 pinned in upstream plugin-barman-cloud v0.11.0 sidecar-requirements.txt; fix requires 2.33.0. Requires sidecar-requirements.txt source change — cannot be fixed by rebuild alone. Suppressed pending upstream release."

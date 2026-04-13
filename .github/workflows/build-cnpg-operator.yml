@@ -37,6 +37,9 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Enforce minimum Go toolchain for CVE fixes
+        run: echo "GOTOOLCHAIN=go1.26.2+auto" >> $GITHUB_ENV
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 

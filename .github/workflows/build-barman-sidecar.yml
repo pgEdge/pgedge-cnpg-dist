@@ -74,6 +74,18 @@ jobs:
           fi
 
       # -------------------------------
+      # Patch Dockerfiles to enforce minimum Go toolchain for CVE fixes
+      # -------------------------------
+      - name: Patch Go toolchain in Dockerfiles
+        run: |
+          for f in containers/Dockerfile.plugin containers/Dockerfile.sidecar; do
+            if [ -f "$f" ]; then
+              sed -i '/^FROM.*golang.*AS gobuilder/a ENV GOTOOLCHAIN=go1.25.9+auto' "$f"
+              echo "✅ Patched $f"
+            fi
+          done
+
+      # -------------------------------
       # Build and push Base and Plugin images
       # -------------------------------
       - name: Build and push Base image
