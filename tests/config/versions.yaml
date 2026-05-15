@@ -2,10 +2,10 @@
 # This file defines which versions to test and on which providers
 
 cnpg_versions:
-  - version: "1.29.0"
-    chart_version: "0.28.0"
-    git_tag: "v1.29.0"
-    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.29.0"
+  - version: "1.29.1"
+    chart_version: "0.28.2"
+    git_tag: "v1.29.1"
+    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.29.1"
     postgres_versions: ["18", "17", "16"]
     providers:
       kind:
@@ -13,10 +13,10 @@ cnpg_versions:
       eks:
         kubernetes_versions: ["1.33"]
 
-  - version: "1.28.2"
+  - version: "1.28.3"
     chart_version: "0.27.1"
-    git_tag: "v1.28.2"
-    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.28.2"
+    git_tag: "v1.28.3"
+    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.28.3"
     postgres_versions: ["18", "17", "16"]
     providers:
       kind:
