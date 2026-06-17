@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -58,10 +59,17 @@ func InstallCertManager(t *testing.T, kubeconfigPath, manifestURL string) {
 func BuildAndLoadImage(t *testing.T, pgedgeHelmPath, kindClusterName string) {
 	t.Helper()
 
+	ctx := context.Background()
+	if deadline, ok := t.Deadline(); ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+		defer cancel()
+	}
+
 	t.Logf("Building pgedge-helm-utils Docker image in %s", pgedgeHelmPath)
 
 	// Build the dev image using docker buildx bake
-	buildCmd := exec.Command("make", "docker-build-dev")
+	buildCmd := exec.CommandContext(ctx, "make", "docker-build-dev")
 	buildCmd.Dir = pgedgeHelmPath
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
@@ -70,7 +78,7 @@ func BuildAndLoadImage(t *testing.T, pgedgeHelmPath, kindClusterName string) {
 
 	// Load image into Kind cluster
 	t.Logf("Loading pgedge-helm-utils:dev image into Kind cluster %s", kindClusterName)
-	loadCmd := exec.Command("kind", "load", "docker-image", "pgedge-helm-utils:dev", "--name", kindClusterName)
+	loadCmd := exec.CommandContext(ctx, "kind", "load", "docker-image", "pgedge-helm-utils:dev", "--name", kindClusterName)
 	loadCmd.Stdout = os.Stdout
 	loadCmd.Stderr = os.Stderr
 	err = loadCmd.Run()
@@ -132,9 +140,10 @@ func WaitForPgedgeClusters(t *testing.T, kubeconfigPath, namespace, appName stri
 	t.Logf("Waiting for %d pgEdge CNPG clusters to become healthy (timeout: %v)", nodeCount, timeout)
 
 	_, err := retry.DoWithRetryE(t, "Wait for pgEdge clusters healthy", maxRetries, 10*time.Second, func() (string, error) {
-		// Get all CNPG clusters in namespace
+		// Get CNPG clusters belonging to this release
 		output, getErr := k8s.RunKubectlAndGetOutputE(t, opts,
 			"get", "clusters.postgresql.cnpg.io",
+			"-l", fmt.Sprintf("pgedge.com/app-name=%s", appName),
 			"-o", "jsonpath={range .items[*]}{.metadata.name}={.status.phase}{\"\\n\"}{end}",
 		)
 		if getErr != nil {
@@ -288,7 +297,13 @@ func ensureGotestsum(t *testing.T) {
 	}
 
 	t.Log("gotestsum not found, installing gotest.tools/gotestsum@v1.13.0")
-	cmd := exec.Command("go", "install", "gotest.tools/gotestsum@v1.13.0")
+	ctx := context.Background()
+	if deadline, ok := t.Deadline(); ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+		defer cancel()
+	}
+	cmd := exec.CommandContext(ctx, "go", "install", "gotest.tools/gotestsum@v1.13.0")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	require.NoError(t, cmd.Run(), "failed to install gotestsum")
@@ -311,17 +326,18 @@ func GetPgedgeHelmPath(t *testing.T) string {
 		branch = "main"
 	}
 
-	repoDir := filepath.Join(os.TempDir(), "pgedge-helm")
-
-	// Check if already cloned
-	if _, err := os.Stat(filepath.Join(repoDir, "Chart.yaml")); err == nil {
-		t.Logf("pgedge-helm repository already exists at %s", repoDir)
-		return repoDir
-	}
+	repoDir, err := os.MkdirTemp("", "pgedge-helm-*")
+	require.NoError(t, err, "Failed to create temp directory for pgedge-helm clone")
 
 	t.Logf("Cloning pgedge-helm repository (branch: %s) to %s", branch, repoDir)
 
-	cmd := exec.Command("git", "clone",
+	ctx := context.Background()
+	if deadline, ok := t.Deadline(); ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+		defer cancel()
+	}
+	cmd := exec.CommandContext(ctx, "git", "clone",
 		"--depth", "1",
 		"--branch", branch,
 		"https://github.com/pgEdge/pgedge-helm.git",
