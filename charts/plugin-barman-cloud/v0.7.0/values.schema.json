@@ -147,7 +147,7 @@
           "type": "string"
         },
         "repository": {
-          "default": "cloudnative-pg/plugin-barman-cloud",
+          "default": "pgedge/plugin-barman-cloud-sidecar",
           "type": "string"
         },
         "tag": {
@@ -288,7 +288,7 @@
           "type": "string"
         },
         "repository": {
-          "default": "cloudnative-pg/plugin-barman-cloud-sidecar",
+          "default": "pgedge/plugin-barman-cloud-sidecar",
           "type": "string"
         },
         "tag": {

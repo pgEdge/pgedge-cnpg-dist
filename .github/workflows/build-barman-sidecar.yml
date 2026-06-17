@@ -68,6 +68,10 @@ jobs:
           if [ -z "${GO_VERSION}" ]; then
             GO_VERSION="$(sed -n 's/^go //p' go.mod)"
           fi
+          if [ -z "${GO_VERSION}" ]; then
+            echo "::error::Could not determine GO_VERSION from go.mod (no 'toolchain' or 'go' directive); refusing to build with an invalid 'FROM golang:' base image" >&2
+            exit 1
+          fi
           echo "GO_VERSION=${GO_VERSION}" >> $GITHUB_ENV
           echo "ℹ️ Using GO_VERSION=${GO_VERSION} for builder base image"
 

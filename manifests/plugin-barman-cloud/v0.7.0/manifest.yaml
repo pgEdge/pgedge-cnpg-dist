@@ -945,9 +945,7 @@ subjects:
 ---
 apiVersion: v1
 data:
-  SIDECAR_IMAGE: |
-    Z2hjci5pby9jbG91ZG5hdGl2ZS1wZy9wbHVnaW4tYmFybWFuLWNsb3VkLXNpZGVjYXI6dj
-    AuNy4w
+  SIDECAR_IMAGE: Z2hjci5pby9wZ2VkZ2UvcGx1Z2luLWJhcm1hbi1jbG91ZC1zaWRlY2FyOnYwLjcuMA==
 kind: Secret
 metadata:
   name: plugin-barman-cloud-7g4226tm68

@@ -147,7 +147,7 @@
           "type": "string"
         },
         "repository": {
-          "default": "ghcr.io/cloudnative-pg/cloudnative-pg",
+          "default": "ghcr.io/pgedge/cloudnative-pg",
           "type": "string"
         },
         "tag": {
