@@ -60,6 +60,17 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "INTERNAL_SUFFIX=${INTERNAL_SUFFIX}" >> $GITHUB_ENV
 
+          # v0.12.0+ Dockerfiles parameterize the builder base image as
+          # `FROM golang:${GO_VERSION}` and require GO_VERSION to be passed as a
+          # build arg (upstream's Taskfile reads it from the go.mod toolchain
+          # directive). Derive it the same way; fall back to the `go` directive.
+          GO_VERSION="$(sed -n 's/^toolchain go//p' go.mod)"
+          if [ -z "${GO_VERSION}" ]; then
+            GO_VERSION="$(sed -n 's/^go //p' go.mod)"
+          fi
+          echo "GO_VERSION=${GO_VERSION}" >> $GITHUB_ENV
+          echo "ℹ️ Using GO_VERSION=${GO_VERSION} for builder base image"
+
       # -------------------------------
       # Check if base image Dockerfile exists (removed in v0.11.0+)
       # -------------------------------
@@ -106,6 +117,8 @@ jobs:
           context: .
           file: containers/Dockerfile.plugin
           push: true
+          build-args: |
+            GO_VERSION=${{ env.GO_VERSION }}
           tags: |
             ${{ env.PLUGIN_IMAGE }}:v${{ env.VERSION }}
             ${{ env.PLUGIN_IMAGE }}:latest
@@ -139,6 +152,7 @@ jobs:
           file: containers/Dockerfile.sidecar
           push: true
           build-args: |
+            GO_VERSION=${{ env.GO_VERSION }}
             BASE_IMAGE=${{ env.BASE_IMAGE }}:v${{ env.VERSION }}
             PLUGIN_IMAGE=${{ env.PLUGIN_IMAGE }}:v${{ env.VERSION }}
           tags: |
@@ -153,6 +167,8 @@ jobs:
           context: .
           file: containers/Dockerfile.sidecar
           push: true
+          build-args: |
+            GO_VERSION=${{ env.GO_VERSION }}
           tags: |
             ${{ env.SIDECAR_IMAGE }}:v${{ env.VERSION }}
             ${{ env.SIDECAR_IMAGE }}:latest
