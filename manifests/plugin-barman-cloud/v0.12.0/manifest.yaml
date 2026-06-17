@@ -5,13 +5,13 @@
 # MODIFIED by pgEdge, Inc. (2025-2026)
 # Change: Image references changed to ghcr.io/pgedge/plugin-barman-cloud-sidecar
 #
-# Source: https://github.com/cloudnative-pg/plugin-barman-cloud/releases/tag/v0.7.0
+# Source: https://github.com/cloudnative-pg/plugin-barman-cloud/releases/tag/v0.12.0
 
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.20.1
   name: objectstores.barmancloud.cnpg.io
 spec:
   group: barmancloud.cnpg.io
@@ -116,6 +116,11 @@ spec:
                         - key
                         - name
                         type: object
+                      useDefaultAzureCredentials:
+                        description: |-
+                          Use the default Azure authentication flow, which includes DefaultAzureCredential.
+                          This allows authentication using environment variables and managed identities.
+                        type: boolean
                     type: object
                   data:
                     description: |-
@@ -716,7 +721,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: plugin-barman-cloud
-  name: leader-election-role
+  name: barman-plugin-leader-election-role
   namespace: cnpg-system
 rules:
 - apiGroups:
@@ -754,7 +759,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: metrics-auth-role
+  name: barman-plugin-metrics-auth-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -772,7 +777,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: metrics-reader
+  name: barman-plugin-metrics-reader
 rules:
 - nonResourceURLs:
   - /metrics
@@ -785,7 +790,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: plugin-barman-cloud
-  name: objectstore-editor-role
+  name: barman-plugin-objectstore-editor-role
 rules:
 - apiGroups:
   - barmancloud.cnpg.io
@@ -812,7 +817,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: plugin-barman-cloud
-  name: objectstore-viewer-role
+  name: barman-plugin-objectstore-viewer-role
 rules:
 - apiGroups:
   - barmancloud.cnpg.io
@@ -903,12 +908,12 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: plugin-barman-cloud
-  name: leader-election-rolebinding
+  name: barman-plugin-leader-election-rolebinding
   namespace: cnpg-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: leader-election-role
+  name: barman-plugin-leader-election-role
 subjects:
 - kind: ServiceAccount
   name: plugin-barman-cloud
@@ -917,11 +922,11 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: metrics-auth-rolebinding
+  name: barman-plugin-metrics-auth-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: metrics-auth-role
+  name: barman-plugin-metrics-auth-role
 subjects:
 - kind: ServiceAccount
   name: plugin-barman-cloud
@@ -947,10 +952,10 @@ apiVersion: v1
 data:
   SIDECAR_IMAGE: |
     Z2hjci5pby9jbG91ZG5hdGl2ZS1wZy9wbHVnaW4tYmFybWFuLWNsb3VkLXNpZGVjYXI6dj
-    AuNy4w
+    AuMTIuMA==
 kind: Secret
 metadata:
-  name: plugin-barman-cloud-7g4226tm68
+  name: plugin-barman-cloud-kg5c2795f7
   namespace: cnpg-system
 type: Opaque
 ---
@@ -1007,8 +1012,8 @@ spec:
           valueFrom:
             secretKeyRef:
               key: SIDECAR_IMAGE
-              name: plugin-barman-cloud-7g4226tm68
-        image: ghcr.io/pgedge/plugin-barman-cloud-sidecar:v0.7.0
+              name: plugin-barman-cloud-kg5c2795f7
+        image: ghcr.io/pgedge/plugin-barman-cloud-sidecar:v0.12.0
         name: barman-cloud
         ports:
         - containerPort: 9090
