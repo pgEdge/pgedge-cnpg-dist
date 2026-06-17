@@ -13,6 +13,15 @@ type Config struct {
 	PostgresImages   PostgresImages              `yaml:"postgres_images"`
 	TestDefaults     TestDefaults                `yaml:"test_defaults"`
 	ProviderDefaults map[string]ProviderDefaults `yaml:"provider_defaults"`
+	PgedgeHelm       PgedgeHelmDefaults          `yaml:"pgedge_helm"`
+}
+
+// PgedgeHelmDefaults represents pgEdge Helm chart test defaults
+type PgedgeHelmDefaults struct {
+	CertManagerVersion  string `yaml:"cert_manager_version"`
+	CertManagerManifest string `yaml:"cert_manager_manifest"`
+	DefaultValues       string `yaml:"default_values"`
+	InitSpockImage      string `yaml:"init_spock_image"`
 }
 
 // CNPGVersion represents a specific CNPG version configuration

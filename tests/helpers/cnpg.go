@@ -278,6 +278,23 @@ func DeployCNPGOperatorFromManifest(t *testing.T, kubeconfigPath, version, names
 	return operator
 }
 
+// DeployCNPGOperatorWithMethod deploys the CNPG operator using the specified install method.
+// installMethod: "manifest" uses kubectl apply (creates deployment "cnpg-controller-manager")
+//                "helm"     uses Helm (creates deployment named after the release)
+func DeployCNPGOperatorWithMethod(t *testing.T, kubeconfigPath, version, chartVersion, namespace, operatorImage, postgresImage, installMethod string) *CNPGOperator {
+	t.Helper()
+
+	switch installMethod {
+	case "manifest":
+		return DeployCNPGOperatorFromManifest(t, kubeconfigPath, version, namespace)
+	case "helm":
+		return DeployCNPGOperator(t, kubeconfigPath, version, chartVersion, namespace, operatorImage, postgresImage)
+	default:
+		t.Fatalf("unknown CNPG install method %q: must be \"manifest\" or \"helm\"", installMethod)
+		return nil
+	}
+}
+
 // Helper functions
 
 func getImageRepository(fullImage string) string {
