@@ -55,7 +55,7 @@ jobs:
           fi
 
           echo "BASE_IMAGE=ghcr.io/pgedge/plugin-barman-cloud-base${INTERNAL_SUFFIX}" >> $GITHUB_ENV
-          echo "PLUGIN_IMAGE=ghcr.io/pgedge/plugin-barman-cloud-plugin${INTERNAL_SUFFIX}" >> $GITHUB_ENV
+          echo "PLUGIN_IMAGE=ghcr.io/pgedge/plugin-barman-cloud${INTERNAL_SUFFIX}" >> $GITHUB_ENV
           echo "SIDECAR_IMAGE=ghcr.io/${IMAGE_NAME}" >> $GITHUB_ENV
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "INTERNAL_SUFFIX=${INTERNAL_SUFFIX}" >> $GITHUB_ENV
