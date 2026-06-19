@@ -99,7 +99,7 @@ Kubernetes: `>=1.29.0-0`
 | hostNetwork | bool | `false` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.registry | string | `"ghcr.io"` |  |
-| image.repository | string | `"cloudnative-pg/plugin-barman-cloud"` |  |
+| image.repository | string | `"pgedge/plugin-barman-cloud"` |  |
 | image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
 | nameOverride | string | `""` |  |
@@ -119,7 +119,7 @@ Kubernetes: `>=1.29.0-0`
 | serviceAccount.create | bool | `true` | Specifies whether the service account should be created. |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | sidecarImage.registry | string | `"ghcr.io"` |  |
-| sidecarImage.repository | string | `"cloudnative-pg/plugin-barman-cloud-sidecar"` |  |
+| sidecarImage.repository | string | `"pgedge/plugin-barman-cloud-sidecar"` |  |
 | sidecarImage.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
 | tolerations | list | `[]` | Tolerations for the operator to be installed. |
 | topologySpreadConstraints | list | `[]` | Topology Spread Constraints for the operator to be installed. |
