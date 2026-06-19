@@ -27,7 +27,7 @@ replicaCount: 1
 
 image:
   registry: ghcr.io
-  repository: pgedge/plugin-barman-cloud-sidecar
+  repository: pgedge/plugin-barman-cloud
   pullPolicy: IfNotPresent
   # -- Overrides the image tag whose default is the chart appVersion.
   tag: ""

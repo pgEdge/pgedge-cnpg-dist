@@ -211,7 +211,7 @@
           "type": "string"
         },
         "repository": {
-          "default": "pgedge/plugin-barman-cloud-sidecar",
+          "default": "pgedge/plugin-barman-cloud",
           "required": [],
           "title": "repository",
           "type": "string"
