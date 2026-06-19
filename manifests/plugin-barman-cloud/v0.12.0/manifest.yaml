@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # MODIFIED by pgEdge, Inc. (2025-2026)
-# Change: Image references changed to ghcr.io/pgedge (controller plugin-barman-cloud, sidecar plugin-barman-cloud-sidecar)
+# Change: Controller image references changed to ghcr.io/pgedge/plugin-barman-cloud
+# Change: Sidecar image references changed to ghcr.io/pgedge/plugin-barman-cloud-sidecar
 #
 # Source: https://github.com/cloudnative-pg/plugin-barman-cloud/releases/tag/v0.12.0
 
