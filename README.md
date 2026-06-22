@@ -48,7 +48,7 @@ We redistribute CloudNativePG Helm charts with modifications to use pgEdge-built
 | Chart | Latest Version | Upstream Source |
 |-------|----------|-----------------|
 | `charts/cloudnative-pg/` | v0.28.3 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
-| `charts/plugin-barman-cloud/` | v0.5.0 | [cloudnative-pg/plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud) |
+| `charts/plugin-barman-cloud/` | v0.7.0 | [cloudnative-pg/plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud) |
 
 **Modification:** Default image references changed to `ghcr.io/pgedge/` registry.
 
@@ -83,11 +83,10 @@ helm search repo pgedge/plugin-barman-cloud --versions
 
 ## Manifests
 
-We redistribute CloudNativePG installation manifests with modifications to use pgEdge-built operator images. These are the latest versions:
+We redistribute CloudNativePG installation manifests with modifications to use pgEdge-built operator images. These are the currently supported versions:
 
 | Version | Upstream Source |
 |---------|-----------------|
-| v1.27.4 | [cloudnative-pg v1.27.4](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.27.4) |
 | v1.28.3 | [cloudnative-pg v1.28.3](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.28.3) |
 | v1.29.1 | [cloudnative-pg v1.29.1](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.29.1) |
 
