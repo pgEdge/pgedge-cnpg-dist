@@ -248,3 +248,9 @@ provider_defaults:
         url: "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.4.0/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml"
       - name: "Snapshot Controller Setup"
         url: "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.4.0/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml"
+
+# pgEdge Helm chart test defaults
+pgedge_helm:
+  chart_repo: "https://pgedge.github.io/charts"
+  version_override: ""
+  cert_manager_manifest: "https://github.com/cert-manager/cert-manager/releases/download/v1.19.3/cert-manager.yaml"

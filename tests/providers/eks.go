@@ -215,12 +215,14 @@ func (e *EKS) InstallCSIDriver(t *testing.T) error {
 		return err
 	}
 
-	t.Log("Creating gp3 storage class")
+	t.Log("Creating gp3 storage class (default)")
 	storageClass := `
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: ebs-gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
 provisioner: ebs.csi.aws.com
 parameters:
   type: gp3
@@ -266,6 +268,11 @@ func (e *EKS) IsReady(t *testing.T) bool {
 
 // GetClusterName returns the cluster name
 func (e *EKS) GetClusterName() string {
+	return e.config.Name
+}
+
+// GetKubeContext returns the kubeconfig context name for this EKS cluster
+func (e *EKS) GetKubeContext() string {
 	return e.config.Name
 }
 
