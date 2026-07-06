@@ -18,10 +18,9 @@ type Config struct {
 
 // PgedgeHelmDefaults represents pgEdge Helm chart test defaults
 type PgedgeHelmDefaults struct {
-	CertManagerVersion  string `yaml:"cert_manager_version"`
+	ChartRepo           string `yaml:"chart_repo"`
+	VersionOverride     string `yaml:"version_override"`
 	CertManagerManifest string `yaml:"cert_manager_manifest"`
-	DefaultValues       string `yaml:"default_values"`
-	InitSpockImage      string `yaml:"init_spock_image"`
 }
 
 // CNPGVersion represents a specific CNPG version configuration

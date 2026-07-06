@@ -60,6 +60,9 @@ type Provider interface {
 	// GetKubeConfigPath returns the path to the kubeconfig file
 	GetKubeConfigPath() string
 
+	// GetKubeContext returns the kubeconfig context name for this cluster
+	GetKubeContext() string
+
 	// GetKubectlOptions returns kubectl options for the cluster
 	GetKubectlOptions(namespace string) *k8s.KubectlOptions
 

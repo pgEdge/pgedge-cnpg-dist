@@ -449,3 +449,8 @@ func (p *Kind) IsReady(t *testing.T) bool {
 func (p *Kind) GetClusterName() string {
 	return p.cluster.Name
 }
+
+// GetKubeContext returns the kubeconfig context name for this Kind cluster
+func (p *Kind) GetKubeContext() string {
+	return fmt.Sprintf("kind-%s", p.cluster.Name)
+}
