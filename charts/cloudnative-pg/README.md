@@ -20,6 +20,10 @@ This repository provides CloudNativePG Helm charts with each version stored in i
 | 1.27.0          | 0.26.0           |
 | 1.27.1          | 0.26.1           |
 | 1.28.0          | 0.27.0           |
+| 1.28.1          | 0.27.1           |
+| 1.29.0          | 0.28.0           |
+| 1.29.1          | 0.28.1, 0.28.2, 0.28.3 |
+| 1.30.0          | 0.29.0           |
 
 ## Understanding the Pattern
 
@@ -50,7 +54,13 @@ Charts are stored in version-specific directories:
 cloudnative-pg/
 ├── v0.26.0/    # Chart for operator 1.27.0
 ├── v0.26.1/    # Chart for operator 1.27.1
-└── v0.27.0/    # Chart for operator 1.28.0
+├── v0.27.0/    # Chart for operator 1.28.0
+├── v0.27.1/    # Chart for operator 1.28.1
+├── v0.28.0/    # Chart for operator 1.29.0
+├── v0.28.1/    # Chart for operator 1.29.1
+├── v0.28.2/    # Chart for operator 1.29.1
+├── v0.28.3/    # Chart for operator 1.29.1
+└── v0.29.0/    # Chart for operator 1.30.0
 ```
 
 ### Installing from Local Path
@@ -66,7 +76,7 @@ cloudnative-pg/
 helm install cloudnative-pg \
   --namespace cnpg-system \
   --create-namespace \
-  ./v0.27.0
+  ./v0.29.0
 ```
 
 ### Upgrading
@@ -75,7 +85,7 @@ helm install cloudnative-pg \
 # Upgrade to a specific chart version
 helm upgrade cloudnative-pg \
   --namespace cnpg-system \
-  ./v0.27.0
+  ./v0.29.0
 ```
 
 ## Why Different Versions?
