@@ -108,7 +108,7 @@ jobs:
               "cnpg_version": $item.cnpg_version,
               "provider": $item.provider,
               "k8s_version": .,
-              "test_type": ["comprehensive", "infra", "operator"]
+              "test_type": ["comprehensive", "infra", "operator", "pgedge-helm"]
             } |
             .test_type[] as $test |
             {
@@ -168,7 +168,7 @@ jobs:
           echo "Matrix entries: $(echo "$matrix" | jq length)"
           echo "$matrix" | jq .
 
-  # Matrix job for Kind comprehensive, infrastructure and operator tests
+  # Matrix job for Kind comprehensive, infrastructure, operator and pgedge helm tests
   kind-test-matrix:
     name: ${{ matrix.provider }} / ${{ matrix.cnpg_version }} / K8s ${{ matrix.k8s_version }} / ${{ matrix.test_type }}
     runs-on: ubuntu-24.04-x64
@@ -237,12 +237,23 @@ jobs:
           CNPG_VERSION: ${{ matrix.cnpg_version }}
           POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
 
+      - name: Run pgedge-helm test
+        if: matrix.test_type == 'pgedge-helm'
+        run: cd tests && go test -v -run TestPgedgeHelm -timeout 3h .
+        env:
+          CLUSTER_PROVIDER: kind
+          KUBERNETES_VERSION: ${{ matrix.k8s_version }}
+          NODE_COUNT: 3
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
+          POSTGRES_VERSION: ${{ env.POSTGRES_VERSION }}
+
       - name: Cleanup
         if: always()
         run: |
           kind delete cluster --name cnpg-smoke-test 2>/dev/null || true
           kind delete cluster --name cnpg-infra-test 2>/dev/null || true
           kind delete cluster --name cnpg-operator-test 2>/dev/null || true
+          kind delete cluster --name "pgedge-helm-$(echo '${{ matrix.cnpg_version }}' | tr '.' '-')" 2>/dev/null || true
 
   # Summary job that requires all matrix jobs to pass
   test-summary:

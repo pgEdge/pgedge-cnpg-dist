@@ -9,9 +9,9 @@ cnpg_versions:
     postgres_versions: ["18", "17", "16"]
     providers:
       kind:
-        kubernetes_versions: ["1.33", "1.34", "1.35"]
+        kubernetes_versions: ["1.34", "1.35", "1.36"]
       eks:
-        kubernetes_versions: ["1.33"]
+        kubernetes_versions: ["1.36"]
 
   - version: "1.29.1"
     chart_version: "0.28.3"
@@ -94,6 +94,28 @@ provider_defaults:
     default_kubernetes_version: "1.35"
     # Per-K8s-version manifests for CSI hostpath driver installation (Kind-specific)
     kubernetes_version_manifests:
+      "1.36":
+        manifests:
+          - name: "Volume Snapshot CRDs"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.4.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml"
+          - name: "Volume Snapshot Contents CRDs"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.4.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml"
+          - name: "Volume Snapshots CRDs"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.4.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml"
+          - name: "Snapshot Controller RBAC"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.4.0/deploy/kubernetes/snapshot-controller/rbac-snapshot-controller.yaml"
+          - name: "Snapshot Controller Setup"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.4.0/deploy/kubernetes/snapshot-controller/setup-snapshot-controller.yaml"
+          - name: "External Provisioner RBAC"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/external-provisioner/v6.1.0/deploy/kubernetes/rbac.yaml"
+          - name: "External Attacher RBAC"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/external-attacher/v4.10.0/deploy/kubernetes/rbac.yaml"
+          - name: "External Resizer RBAC"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/external-resizer/v2.0.0/deploy/kubernetes/rbac.yaml"
+          - name: "CSI Hostpath Driver"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/csi-driver-host-path/v1.17.0/deploy/kubernetes-1.30/hostpath/csi-hostpath-driverinfo.yaml"
+          - name: "CSI Hostpath Plugin"
+            url: "https://raw.githubusercontent.com/kubernetes-csi/csi-driver-host-path/v1.17.0/deploy/kubernetes-1.30/hostpath/csi-hostpath-plugin.yaml"
       "1.35":
         manifests:
           - name: "Volume Snapshot CRDs"
