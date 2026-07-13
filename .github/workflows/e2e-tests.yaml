@@ -173,7 +173,7 @@ jobs:
     name: ${{ matrix.provider }} / ${{ matrix.cnpg_version }} / K8s ${{ matrix.k8s_version }} / ${{ matrix.test_type }}
     runs-on: ubuntu-24.04-x64
     needs: generate-matrix
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
@@ -239,7 +239,7 @@ jobs:
 
       - name: Run pgedge-helm test
         if: matrix.test_type == 'pgedge-helm'
-        run: cd tests && go test -v -run TestPgedgeHelm -timeout 3h .
+        run: cd tests && go test -v -run TestPgedgeHelm -timeout 2h30m .
         env:
           CLUSTER_PROVIDER: kind
           KUBERNETES_VERSION: ${{ matrix.k8s_version }}
@@ -249,11 +249,14 @@ jobs:
 
       - name: Cleanup
         if: always()
+        env:
+          CNPG_VERSION: ${{ matrix.cnpg_version }}
         run: |
           kind delete cluster --name cnpg-smoke-test 2>/dev/null || true
           kind delete cluster --name cnpg-infra-test 2>/dev/null || true
           kind delete cluster --name cnpg-operator-test 2>/dev/null || true
-          kind delete cluster --name "pgedge-helm-$(echo '${{ matrix.cnpg_version }}' | tr '.' '-')" 2>/dev/null || true
+          pgedge_helm_cluster="pgedge-helm-$(echo "$CNPG_VERSION" | tr '.' '-')"
+          kind delete cluster --name "$pgedge_helm_cluster" 2>/dev/null || true
 
   # Summary job that requires all matrix jobs to pass
   test-summary:
