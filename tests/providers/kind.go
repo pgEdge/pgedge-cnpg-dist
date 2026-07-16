@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -378,9 +379,14 @@ type Kind struct {
 // NewKind creates a new Kind provider
 func NewKind(config *Config) *Kind {
 	// Determine Kind node image based on K8s version
-	kindImage := fmt.Sprintf("kindest/node:v%s.0", config.KubernetesVersion)
-	if config.KubernetesVersion == "" {
+	var kindImage string
+	switch {
+	case config.KubernetesVersion == "":
 		kindImage = "kindest/node:v1.32.0" // Default
+	case strings.Count(config.KubernetesVersion, ".") >= 2:
+		kindImage = fmt.Sprintf("kindest/node:v%s", config.KubernetesVersion)
+	default:
+		kindImage = fmt.Sprintf("kindest/node:v%s.0", config.KubernetesVersion)
 	}
 
 	kindConfig := &kindConfig{
