@@ -41,6 +41,19 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
           path: source
 
+      - name: Validate release version input
+        env:
+          INPUT_RELEASE_VERSION: ${{ github.event.inputs.release_version }}
+        run: |
+          # release_version flows into a sed program, the Krew manifest, the git
+          # branch name, the PR API call, ldflags and the image tag. Reject anything
+          # outside the supported semver-ish format so no sink can be corrupted.
+          if [[ ! "$INPUT_RELEASE_VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9._]+)?$ ]]; then
+            echo "::error::Invalid release_version '$INPUT_RELEASE_VERSION' — expected e.g. v1.30.0 or 1.30.0[-suffix]"
+            exit 1
+          fi
+          echo "release_version '$INPUT_RELEASE_VERSION' is valid"
+
       - name: Patch source to use pgEdge images
         env:
           INPUT_RELEASE_VERSION: ${{ github.event.inputs.release_version }}
