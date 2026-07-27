@@ -95,7 +95,7 @@ jobs:
         run: |
           for f in containers/Dockerfile.plugin containers/Dockerfile.sidecar; do
             if [ -f "$f" ]; then
-              sed -i '/^FROM.*golang.*AS gobuilder/a ENV GOTOOLCHAIN=go1.25.9+auto' "$f"
+              sed -i '/^FROM.*golang.*AS gobuilder/a ENV GOTOOLCHAIN=go1.26.5+auto' "$f"
               echo "✅ Patched $f"
             fi
           done
