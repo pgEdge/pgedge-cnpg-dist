@@ -1,0 +1,112 @@
+# Trivy ignore file for ghcr.io/pgedge/plugin-barman-cloud
+# Policy: OS packages are provided by the registry.access.redhat.com/ubi9/ubi-micro base
+#         image (floating tag) and are refreshed by rebuilding; only OS CVEs with no fix
+#         available in RHEL 9 are suppressed here.
+#         Go dependencies are not updated until upstream cloudnative-pg/plugin-barman-cloud
+#         releases a new tagged version with fixes. Fixes requiring go.mod source changes
+#         cannot be applied by a rebuild alone.
+# Note: Go stdlib CVEs are fixed by setting GOTOOLCHAIN=go1.26.5+auto in the build workflow
+#       (.github/workflows/build-barman-sidecar.yml), so they are NOT suppressed here.
+
+vulnerabilities:
+
+  # ── Go binary: golang.org/x/net ──────────────────────────────────────────────
+  # Pinned at v0.53.0 in upstream plugin-barman-cloud go.mod; fix requires v0.55.0.
+  # Requires a go.mod source change — cannot be applied by a rebuild alone.
+  # Suppressed pending upstream cloudnative-pg/plugin-barman-cloud releasing a new tag.
+
+  - id: CVE-2026-25681
+    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires v0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    purls:
+      - "pkg:golang/golang.org/x/net@v0.53.0"
+    expired_at: 2026-10-27
+  - id: CVE-2026-27136
+    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires v0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    purls:
+      - "pkg:golang/golang.org/x/net@v0.53.0"
+    expired_at: 2026-10-27
+  - id: CVE-2026-39821
+    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires v0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    purls:
+      - "pkg:golang/golang.org/x/net@v0.53.0"
+    expired_at: 2026-10-27
+  - id: CVE-2026-25680
+    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires v0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    purls:
+      - "pkg:golang/golang.org/x/net@v0.53.0"
+    expired_at: 2026-10-27
+  - id: CVE-2026-42502
+    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires v0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    purls:
+      - "pkg:golang/golang.org/x/net@v0.53.0"
+    expired_at: 2026-10-27
+  - id: CVE-2026-42506
+    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires v0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    purls:
+      - "pkg:golang/golang.org/x/net@v0.53.0"
+    expired_at: 2026-10-27
+
+  # ── Go binary: google.golang.org/grpc ────────────────────────────────────────
+  # Pinned at v1.81.1 in upstream plugin-barman-cloud go.mod; fix requires v1.82.1.
+  # Requires a go.mod source change — cannot be applied by a rebuild alone.
+  # Suppressed pending upstream cloudnative-pg/plugin-barman-cloud releasing a new tag.
+
+  - id: GHSA-hrxh-6v49-42gf
+    statement: "google.golang.org/grpc v1.81.1 pinned in upstream plugin-barman-cloud go.mod; fix requires v1.82.1. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    purls:
+      - "pkg:golang/google.golang.org/grpc@v1.81.1"
+    expired_at: 2026-10-27
+
+  # ── Go binary: github.com/google/cel-go ──────────────────────────────────────
+  # Pinned at v0.26.0 in upstream plugin-barman-cloud go.mod; fix requires v0.29.0.
+  # Requires a go.mod source change — cannot be applied by a rebuild alone.
+  # Suppressed pending upstream cloudnative-pg/plugin-barman-cloud releasing a new tag.
+
+  - id: GHSA-gcjh-h69q-9w9g
+    statement: "github.com/google/cel-go v0.26.0 pinned in upstream plugin-barman-cloud go.mod; fix requires v0.29.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    purls:
+      - "pkg:golang/github.com/google/cel-go@v0.26.0"
+    expired_at: 2026-10-27
+
+  # ── OS: libattr ──────────────────────────────────────────────────────────────
+  # No fix available in RHEL 9. Suppressed pending Red Hat packaging.
+
+  - id: CVE-2026-54371
+    statement: "libattr: no fixed version available in RHEL 9 (current ubi9/ubi-micro base). Suppressed pending Red Hat packaging."
+    purls:
+      - "pkg:rpm/redhat/libattr@2.5.1-3.el9?distro=redhat-9.8"
+    expired_at: 2026-10-27
+
+  # ── OS: libgcc ───────────────────────────────────────────────────────────────
+  # Long-standing low-severity issues with no fix in RHEL 9.
+
+  - id: CVE-2021-46195
+    statement: "libgcc: long-standing low-severity issue with no fix in RHEL 9 (current ubi9/ubi-micro base). Suppressed pending Red Hat packaging."
+    purls:
+      - "pkg:rpm/redhat/libgcc@11.5.0-14.el9?distro=redhat-9.8"
+    expired_at: 2026-10-27
+  - id: CVE-2022-27943
+    statement: "libgcc: long-standing low-severity issue with no fix in RHEL 9 (current ubi9/ubi-micro base). Suppressed pending Red Hat packaging."
+    purls:
+      - "pkg:rpm/redhat/libgcc@11.5.0-14.el9?distro=redhat-9.8"
+    expired_at: 2026-10-27
+
+  # ── OS: ncurses (ncurses-base, ncurses-libs) ─────────────────────────────────
+  # No fix available in RHEL 9. Suppressed pending Red Hat packaging.
+
+  - id: CVE-2023-50495
+    statement: "ncurses: no fixed version available in RHEL 9 (current ubi9/ubi-micro base). Suppressed pending Red Hat packaging."
+    purls:
+      - "pkg:rpm/redhat/ncurses-base@6.2-12.20210508.el9?distro=redhat-9.8"
+      - "pkg:rpm/redhat/ncurses-libs@6.2-12.20210508.el9?distro=redhat-9.8"
+    expired_at: 2026-10-27
+
+  # ── OS: pcre2 (pcre2, pcre2-syntax) ──────────────────────────────────────────
+  # Long-standing low-severity issue with no fix in RHEL 9.
+
+  - id: CVE-2022-41409
+    statement: "pcre2: long-standing low-severity issue with no fix in RHEL 9 (current ubi9/ubi-micro base). Suppressed pending Red Hat packaging."
+    purls:
+      - "pkg:rpm/redhat/pcre2-syntax@10.40-6.el9?distro=redhat-9.8"
+      - "pkg:rpm/redhat/pcre2@10.40-6.el9?distro=redhat-9.8"
+    expired_at: 2026-10-27
