@@ -93,12 +93,29 @@ jobs:
       # -------------------------------
       - name: Patch Go toolchain in Dockerfiles
         run: |
+          patched_any=false
           for f in containers/Dockerfile.plugin containers/Dockerfile.sidecar; do
-            if [ -f "$f" ]; then
-              sed -i '/^FROM.*golang.*AS gobuilder/a ENV GOTOOLCHAIN=go1.26.5+auto' "$f"
-              echo "✅ Patched $f"
+            [ -f "$f" ] || continue
+            # Fail closed: the CVE fix depends on this stage existing. If upstream
+            # renames/removes the golang builder stage, refuse to build rather than
+            # silently shipping binaries built with a vulnerable Go toolchain.
+            if ! grep -qE '^FROM.*golang.*AS gobuilder' "$f"; then
+              echo "::error::Expected 'FROM ... golang ... AS gobuilder' not found in $f; GOTOOLCHAIN patch cannot be applied. Refusing to build." >&2
+              exit 1
             fi
+            sed -i '/^FROM.*golang.*AS gobuilder/a ENV GOTOOLCHAIN=go1.26.5+auto' "$f"
+            # Verify the patch actually landed before proceeding.
+            if ! grep -qF 'ENV GOTOOLCHAIN=go1.26.5+auto' "$f"; then
+              echo "::error::Failed to inject 'ENV GOTOOLCHAIN=go1.26.5+auto' into $f." >&2
+              exit 1
+            fi
+            echo "✅ Patched $f"
+            patched_any=true
           done
+          if [ "$patched_any" != "true" ]; then
+            echo "::error::No Dockerfile was patched with GOTOOLCHAIN (expected containers/Dockerfile.plugin and/or containers/Dockerfile.sidecar). Refusing to build." >&2
+            exit 1
+          fi
 
       # -------------------------------
       # Build and push Base and Plugin images

@@ -12,165 +12,240 @@ vulnerabilities:
   # ── Go binary dependencies (pinned in upstream plugin-barman-cloud go.mod) ────
   - id: CVE-2026-25681
     statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    expired_at: 2026-10-27
   - id: CVE-2026-27136
     statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    expired_at: 2026-10-27
   - id: CVE-2026-39821
     statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    expired_at: 2026-10-27
   - id: GHSA-hrxh-6v49-42gf
     statement: "google.golang.org/grpc v1.81.1 pinned in upstream plugin-barman-cloud go.mod; fix requires 1.82.1. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    expired_at: 2026-10-27
   - id: GHSA-gcjh-h69q-9w9g
     statement: "github.com/google/cel-go v0.26.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.29.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    expired_at: 2026-10-27
   - id: CVE-2026-25680
     statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    expired_at: 2026-10-27
   - id: CVE-2026-42502
     statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    expired_at: 2026-10-27
   - id: CVE-2026-42506
     statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+    expired_at: 2026-10-27
 
   # ── Python packages (installed by the upstream sidecar image; barman-cloud env) ─
   - id: CVE-2026-59885
     statement: "pyasn1 0.6.3 pinned by the upstream plugin-barman-cloud sidecar image (barman-cloud install); fix requires 0.6.4. Suppressed pending upstream release."
+    expired_at: 2026-10-27
   - id: CVE-2026-59886
     statement: "pyasn1 0.6.3 pinned by the upstream plugin-barman-cloud sidecar image (barman-cloud install); fix requires 0.6.4. Suppressed pending upstream release."
+    expired_at: 2026-10-27
   - id: CVE-2026-59890
     statement: "setuptools 82.0.1 pinned by the upstream plugin-barman-cloud sidecar image (barman-cloud install); fix requires 83.0.0. Suppressed pending upstream release."
+    expired_at: 2026-10-27
 
   # ── OS: Debian 13 (trixie) base — no fixed version available at build time ─────
   # Suppressed pending Debian packaging.
   # libbz2-1.0
   - id: CVE-2026-42250
     statement: "libbz2-1.0: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   # libc-bin, libc6
   - id: CVE-2026-5435
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-5450
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-5928
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-6238
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2010-4756
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2018-20796
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2019-1010022
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2019-1010023
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2019-1010024
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2019-1010025
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2019-9192
     statement: "libc-bin: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   # libexpat1
   - id: CVE-2025-59375
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-25210
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-45186
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56131
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56407
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56408
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2025-66382
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-32776
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-32777
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-32778
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-50219
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56132
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56403
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56404
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56405
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56406
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56409
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56410
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56411
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-56412
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-24515
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-41080
     statement: "libexpat1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   # libgssapi-krb5-2, libk5crypto3, libkrb5-3, libkrb5support0
   - id: CVE-2018-5709
     statement: "libgssapi-krb5-2: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2024-26458
     statement: "libgssapi-krb5-2: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2024-26461
     statement: "libgssapi-krb5-2: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-11850
     statement: "libgssapi-krb5-2: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   # libncursesw6, libtinfo6
   - id: CVE-2025-69720
     statement: "libncursesw6: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2025-6141
     statement: "libncursesw6: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   # libpython3.13-minimal, libpython3.13-stdlib, python3.13-minimal, python3.13-venv
   - id: CVE-2026-11940
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-15308
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-7210
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2025-12781
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2025-15366
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2025-15367
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-0864
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-11972
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-4360
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-12003
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-3479
     statement: "libpython3.13-minimal: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   # libsqlite3-0
   - id: CVE-2026-11822
     statement: "libsqlite3-0: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-11824
     statement: "libsqlite3-0: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-50812
     statement: "libsqlite3-0: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-50813
     statement: "libsqlite3-0: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2021-45346
     statement: "libsqlite3-0: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2025-70873
     statement: "libsqlite3-0: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   # libuuid1
   - id: CVE-2026-53615
     statement: "libuuid1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-13595
     statement: "libuuid1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-27456
     statement: "libuuid1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2026-3184
     statement: "libuuid1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2022-0563
     statement: "libuuid1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   - id: CVE-2025-14104
     statement: "libuuid1: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
   # zlib1g
   - id: CVE-2026-27171
     statement: "zlib1g: Debian 13 (trixie) — no fixed version available at build time. Suppressed pending Debian packaging."
+    expired_at: 2026-10-27
