@@ -48,7 +48,7 @@ We redistribute CloudNativePG Helm charts with modifications to use pgEdge-built
 | Chart | Latest Version | Upstream Source |
 |-------|----------|-----------------|
 | `charts/cloudnative-pg/` | v0.29.0 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
-| `charts/plugin-barman-cloud/` | v0.7.0 | [cloudnative-pg/plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud) |
+| `charts/plugin-barman-cloud/` | v0.7.1 | [cloudnative-pg/plugin-barman-cloud](https://github.com/cloudnative-pg/plugin-barman-cloud) |
 
 **Modification:** Default image references changed to `ghcr.io/pgedge/` registry.
 
