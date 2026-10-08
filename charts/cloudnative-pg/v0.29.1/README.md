@@ -26,7 +26,7 @@ Getting Started
 ### Add the chart repository
 
 ```console
-helm repo add cnpg https://cloudnative-pg.github.io/charts
+helm repo add pgedge https://pgedge.github.io/charts
 helm repo update
 ```
 
@@ -36,7 +36,7 @@ helm repo update
 helm upgrade --install cnpg \
   --namespace cnpg-system \
   --create-namespace \
-  cnpg/cloudnative-pg
+  pgedge/cloudnative-pg
 ```
 
 ### Install with custom parameters
@@ -49,7 +49,7 @@ helm upgrade --install cnpg \
   --namespace cnpg-system \
   --create-namespace \
   --set monitoring.podMonitorEnabled=true \
-  cnpg/cloudnative-pg
+  pgedge/cloudnative-pg
 ```
 
 > **Note**
@@ -80,7 +80,7 @@ helm upgrade --install cnpg \
   --namespace cnpg-system \
   --create-namespace \
   --set config.clusterWide=false \
-  cnpg/cloudnative-pg
+  pgedge/cloudnative-pg
 ```
 
 **IMPORTANT**: the single-namespace installation mode can't coexist with the cluster-wide operator. Otherwise
@@ -106,10 +106,6 @@ helm uninstall cnpg --namespace cnpg-system
 ## Requirements
 
 Kubernetes: `>=1.29.0-0`
-
-| Repository | Name | Version |
-|------------|------|---------|
-| https://cloudnative-pg.github.io/grafana-dashboards | monitoring(cluster) | 0.0 |
 
 ## Values
 
