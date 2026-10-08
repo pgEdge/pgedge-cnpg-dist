@@ -46,15 +46,29 @@ func TestUpstream(t *testing.T) {
 		"standard",
 	)
 
-	// Deploy CNPG operator
-	operator := helpers.DeployCNPGOperator(t,
-		provider.GetKubeConfigPath(),
-		cnpgVersion.Version,
-		cnpgVersion.ChartVersion,
-		"cnpg-system",
-		cnpgVersion.GetOperatorImageName(),
-		postgresImage,
-	)
+	// Deploy CNPG operator. Operator versions with no matching upstream chart (e.g. 1.29.3,
+	// whose newest chart 0.28.3 ships appVersion 1.29.1) are installed from the static
+	// manifest: the older chart lacks RBAC and CRD fields the newer operator needs.
+	var operator *helpers.CNPGOperator
+	if appVersion := helpers.ChartAppVersion(t, cnpgVersion.ChartVersion); appVersion == cnpgVersion.Version {
+		operator = helpers.DeployCNPGOperator(t,
+			provider.GetKubeConfigPath(),
+			cnpgVersion.Version,
+			cnpgVersion.ChartVersion,
+			"cnpg-system",
+			cnpgVersion.GetOperatorImageName(),
+			postgresImage,
+		)
+	} else {
+		t.Logf("Chart %s ships operator %s, not %s; installing from manifest",
+			cnpgVersion.ChartVersion, appVersion, cnpgVersion.Version)
+		operator = helpers.DeployCNPGOperatorFromManifestWithPostgresImage(t,
+			provider.GetKubeConfigPath(),
+			cnpgVersion.Version,
+			"cnpg-system",
+			postgresImage,
+		)
+	}
 
 	t.Logf("CNPG operator deployed, running upstream E2E tests")
 

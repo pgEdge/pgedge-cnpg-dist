@@ -187,10 +187,10 @@ Tests are configured via [`tests/config/versions.yaml`](tests/config/versions.ya
 
 ```yaml
 cnpg_versions:
-  - version: "1.29.1"
+  - version: "1.29.3"
     chart_version: "0.28.3"
-    git_tag: "v1.29.1"
-    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.29.1"
+    git_tag: "v1.29.3"
+    operator_image: "ghcr.io/pgedge/cloudnative-pg:1.29.3"
     postgres_versions: ["18", "17", "16"]
     providers:
       kind:
