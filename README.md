@@ -88,6 +88,8 @@ We redistribute CloudNativePG installation manifests with modifications to use p
 | Version | Upstream Source |
 |---------|-----------------|
 | v1.29.1 | [cloudnative-pg v1.29.1](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.29.1) |
+| v1.29.2 | [cloudnative-pg v1.29.2](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.29.2) |
+| v1.29.3 | [cloudnative-pg v1.29.3](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.29.3) |
 | v1.30.0 | [cloudnative-pg v1.30.0](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.30.0) |
 | v1.30.1 | [cloudnative-pg v1.30.1](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.30.1) |
 
