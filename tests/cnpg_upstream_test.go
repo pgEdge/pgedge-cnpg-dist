@@ -174,12 +174,14 @@ func buildE2EEnv(kubeconfigPath, postgresImage string, storageConfig config.Stor
 // upstreamE2EConfig mirrors the subset of the upstream tests/config.Config schema
 // (CNPG >= 1.30.1) that buildE2EEnv covers via env vars on older versions.
 // Upstream parses this file strictly, so only fields known to the schema may appear.
+// storageClass is deliberately omitted so upstream autodetects the cluster default
+// (kind's local-path): specs such as "Unrecoverable pending instance" need PVCs that
+// can be provisioned on any node, which the single-replica csi-hostpath driver cannot do.
 type upstreamE2EConfig struct {
 	Postgres struct {
 		Image string `yaml:"image"`
 	} `yaml:"postgres"`
 	Storage struct {
-		StorageClass        string `yaml:"storageClass"`
 		CSIStorageClass     string `yaml:"csiStorageClass"`
 		VolumeSnapshotClass string `yaml:"volumeSnapshotClass"`
 	} `yaml:"storage"`
@@ -199,7 +201,6 @@ func writeE2EConfig(t *testing.T, cnpgRepoDir, postgresImage string, storageConf
 
 	var cfg upstreamE2EConfig
 	cfg.Postgres.Image = postgresImage
-	cfg.Storage.StorageClass = storageConfig.CSIClass
 	cfg.Storage.CSIStorageClass = storageConfig.CSIClass
 	cfg.Storage.VolumeSnapshotClass = storageConfig.SnapshotClass
 	cfg.CloudVendor = "kind"
