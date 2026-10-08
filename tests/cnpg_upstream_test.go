@@ -12,6 +12,7 @@ import (
 	"github.com/pgedge/pgedge-cnpg-dist/tests/helpers"
 	"github.com/pgedge/pgedge-cnpg-dist/tests/providers"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 // TestUpstream runs the upstream CNPG E2E tests
@@ -45,15 +46,29 @@ func TestUpstream(t *testing.T) {
 		"standard",
 	)
 
-	// Deploy CNPG operator
-	operator := helpers.DeployCNPGOperator(t,
-		provider.GetKubeConfigPath(),
-		cnpgVersion.Version,
-		cnpgVersion.ChartVersion,
-		"cnpg-system",
-		cnpgVersion.GetOperatorImageName(),
-		postgresImage,
-	)
+	// Deploy CNPG operator. Operator versions with no matching upstream chart (e.g. 1.29.3,
+	// whose newest chart 0.28.3 ships appVersion 1.29.1) are installed from the static
+	// manifest: the older chart lacks RBAC and CRD fields the newer operator needs.
+	var operator *helpers.CNPGOperator
+	if appVersion := helpers.ChartAppVersion(t, cnpgVersion.ChartVersion); appVersion == cnpgVersion.Version {
+		operator = helpers.DeployCNPGOperator(t,
+			provider.GetKubeConfigPath(),
+			cnpgVersion.Version,
+			cnpgVersion.ChartVersion,
+			"cnpg-system",
+			cnpgVersion.GetOperatorImageName(),
+			postgresImage,
+		)
+	} else {
+		t.Logf("Chart %s ships operator %s, not %s; installing from manifest",
+			cnpgVersion.ChartVersion, appVersion, cnpgVersion.Version)
+		operator = helpers.DeployCNPGOperatorFromManifestWithPostgresImage(t,
+			provider.GetKubeConfigPath(),
+			cnpgVersion.Version,
+			"cnpg-system",
+			postgresImage,
+		)
+	}
 
 	t.Logf("CNPG operator deployed, running upstream E2E tests")
 
@@ -170,6 +185,48 @@ func buildE2EEnv(kubeconfigPath, postgresImage string, storageConfig config.Stor
 	)
 }
 
+// upstreamE2EConfig mirrors the subset of the upstream tests/config.Config schema
+// (CNPG >= 1.30.1) that buildE2EEnv covers via env vars on older versions.
+// Upstream parses this file strictly, so only fields known to the schema may appear.
+// storageClass is deliberately omitted so upstream autodetects the cluster default
+// (kind's local-path): specs such as "Unrecoverable pending instance" need PVCs that
+// can be provisioned on any node, which the single-replica csi-hostpath driver cannot do.
+type upstreamE2EConfig struct {
+	Postgres struct {
+		Image string `yaml:"image"`
+	} `yaml:"postgres"`
+	Storage struct {
+		CSIStorageClass     string `yaml:"csiStorageClass"`
+		VolumeSnapshotClass string `yaml:"volumeSnapshotClass"`
+	} `yaml:"storage"`
+	CloudVendor string `yaml:"cloudVendor"`
+}
+
+// writeE2EConfig writes tests/e2e/config.yaml for upstream versions that read their
+// settings from it instead of env vars. Without it those versions fall back to the
+// upstream ghcr.io/cloudnative-pg/postgresql image, which the image validation policy denies.
+func writeE2EConfig(t *testing.T, cnpgRepoDir, postgresImage string, storageConfig config.StorageConfig) {
+	t.Helper()
+
+	if _, err := os.Stat(filepath.Join(cnpgRepoDir, "tests", "config", "config.go")); os.IsNotExist(err) {
+		t.Logf("Upstream E2E suite predates tests/config; using env vars only")
+		return
+	}
+
+	var cfg upstreamE2EConfig
+	cfg.Postgres.Image = postgresImage
+	cfg.Storage.CSIStorageClass = storageConfig.CSIClass
+	cfg.Storage.VolumeSnapshotClass = storageConfig.SnapshotClass
+	cfg.CloudVendor = "kind"
+
+	data, err := yaml.Marshal(&cfg)
+	require.NoError(t, err, "Failed to marshal upstream E2E config")
+
+	configPath := filepath.Join(cnpgRepoDir, "tests", "e2e", "config.yaml")
+	require.NoError(t, os.WriteFile(configPath, data, 0o600), "Failed to write upstream E2E config")
+	t.Logf("Wrote upstream E2E config to %s:\n%s", configPath, data)
+}
+
 // buildGinkgoCmd constructs the ginkgo exec.Command for the upstream E2E suite.
 func buildGinkgoCmd(testsDir, labelFilter, reportPath string) *exec.Cmd {
 	cmd := exec.Command("ginkgo",
@@ -202,6 +259,8 @@ func runUpstreamE2ETests(t *testing.T, cnpgRepoDir, kubeconfigPath, postgresImag
 
 	labelFilter := buildLabelFilter()
 	reportPath := filepath.Join(testsDir, "report.json")
+
+	writeE2EConfig(t, cnpgRepoDir, postgresImage, storageConfig)
 
 	cmd := buildGinkgoCmd(testsDir, labelFilter, reportPath)
 	cmd.Env = buildE2EEnv(kubeconfigPath, postgresImage, storageConfig)
