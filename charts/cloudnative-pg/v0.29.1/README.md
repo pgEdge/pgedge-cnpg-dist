@@ -1,3 +1,9 @@
+<!--
+MODIFIED by pgEdge, Inc. (2025-2026)
+Change: Installation instructions point to the pgEdge Helm repository (pgedge/cloudnative-pg)
+Change: image.repository default changed to ghcr.io/pgedge/cloudnative-pg
+Change: Grafana dashboard subchart removed from the Requirements table
+-->
 # cloudnative-pg
 
 ![Version: 0.29.1](https://img.shields.io/badge/Version-0.29.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.30.1](https://img.shields.io/badge/AppVersion-1.30.1-informational?style=flat-square)

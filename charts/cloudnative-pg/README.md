@@ -24,6 +24,9 @@ This repository provides CloudNativePG Helm charts with each version stored in i
 | 1.29.0          | 0.28.0           |
 | 1.29.1          | 0.28.1, 0.28.2, 0.28.3 |
 | 1.30.0          | 0.29.0           |
+| 1.30.1          | 0.29.1           |
+
+Operator 1.29.2 and 1.29.3 have no upstream chart; install them from the static manifests in `manifests/cloudnative-pg/`.
 
 ## Understanding the Pattern
 
@@ -60,7 +63,8 @@ cloudnative-pg/
 ├── v0.28.1/    # Chart for operator 1.29.1
 ├── v0.28.2/    # Chart for operator 1.29.1
 ├── v0.28.3/    # Chart for operator 1.29.1
-└── v0.29.0/    # Chart for operator 1.30.0
+├── v0.29.0/    # Chart for operator 1.30.0
+└── v0.29.1/    # Chart for operator 1.30.1
 ```
 
 ### Installing from Local Path
@@ -76,7 +80,7 @@ cloudnative-pg/
 helm install cloudnative-pg \
   --namespace cnpg-system \
   --create-namespace \
-  ./v0.29.0
+  ./v0.29.1
 ```
 
 ### Upgrading
@@ -85,7 +89,7 @@ helm install cloudnative-pg \
 # Upgrade to a specific chart version
 helm upgrade cloudnative-pg \
   --namespace cnpg-system \
-  ./v0.29.0
+  ./v0.29.1
 ```
 
 ## Why Different Versions?
