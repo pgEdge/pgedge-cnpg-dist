@@ -1,3 +1,9 @@
+<!--
+MODIFIED by pgEdge, Inc. (2025-2026)
+Change: Installation instructions point to the pgEdge Helm repository (pgedge/plugin-barman-cloud)
+Change: image.repository default changed to pgedge/plugin-barman-cloud
+Change: sidecarImage.repository default changed to pgedge/plugin-barman-cloud-sidecar
+-->
 # plugin-barman-cloud
 
 ![Version: 0.8.1](https://img.shields.io/badge/Version-0.8.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.15.1](https://img.shields.io/badge/AppVersion-v0.15.1-informational?style=flat-square)
