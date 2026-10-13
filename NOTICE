@@ -36,6 +36,9 @@ Location: charts/cloudnative-pg/
   Copyright: Contributors to CloudNativePG, established as CloudNativePG
              a Series of LF Projects, LLC.
   Modification: Default image references changed to ghcr.io/pgedge/ registry.
+                Grafana dashboard subchart dependency removed from Chart.yaml.
+                Chart README installation instructions point to the pgEdge Helm
+                repository (v0.29.1 and later).
 
 Location: charts/plugin-barman-cloud/
   Source: https://github.com/cloudnative-pg/charts
