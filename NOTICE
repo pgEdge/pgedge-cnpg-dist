@@ -41,11 +41,13 @@ Location: charts/cloudnative-pg/
                 repository (v0.29.1 and later).
 
 Location: charts/plugin-barman-cloud/
-  Source: https://github.com/cloudnative-pg/plugin-barman-cloud
+  Source: https://github.com/cloudnative-pg/charts
   License: Apache License 2.0
   Copyright: Contributors to CloudNativePG, established as CloudNativePG
              a Series of LF Projects, LLC.
   Modification: Default image references changed to ghcr.io/pgedge/ registry.
+                Chart README installation instructions point to the pgEdge Helm
+                repository (v0.8.1 and later).
 
 Manifests
 ---------
