@@ -11,6 +11,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 // CNPGOperator represents a deployed CNPG operator
@@ -223,8 +224,49 @@ func DeployCNPGOperator(t *testing.T, kubeconfigPath, version, chartVersion, nam
 	return operator
 }
 
+// ChartAppVersion returns the appVersion declared in charts/cloudnative-pg/v<chartVersion>/Chart.yaml
+func ChartAppVersion(t *testing.T, chartVersion string) string {
+	t.Helper()
+
+	projectRoot, err := os.Getwd()
+	require.NoError(t, err, "Failed to get working directory")
+	for {
+		if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
+			break
+		}
+		parent := filepath.Dir(projectRoot)
+		if parent == projectRoot {
+			require.Fail(t, "Could not find project root (go.mod not found)")
+		}
+		projectRoot = parent
+	}
+
+	chartFile := filepath.Join(projectRoot, "charts", "cloudnative-pg", fmt.Sprintf("v%s", chartVersion), "Chart.yaml")
+	data, err := os.ReadFile(chartFile)
+	require.NoError(t, err, "Failed to read %s", chartFile)
+
+	var chart struct {
+		AppVersion string `yaml:"appVersion"`
+	}
+	require.NoError(t, yaml.Unmarshal(data, &chart), "Failed to parse %s", chartFile)
+	return chart.AppVersion
+}
+
 // DeployCNPGOperatorFromManifest deploys CNPG operator using kubectl apply with the static manifest
 func DeployCNPGOperatorFromManifest(t *testing.T, kubeconfigPath, version, namespace string) *CNPGOperator {
+	t.Helper()
+	return deployCNPGOperatorFromManifest(t, kubeconfigPath, version, namespace, "")
+}
+
+// DeployCNPGOperatorFromManifestWithPostgresImage deploys CNPG operator from the static manifest
+// and sets POSTGRES_IMAGE_NAME in the operator config, matching what the Helm install does via
+// config.data.POSTGRES_IMAGE_NAME. Used for operator versions with no matching upstream chart.
+func DeployCNPGOperatorFromManifestWithPostgresImage(t *testing.T, kubeconfigPath, version, namespace, postgresImage string) *CNPGOperator {
+	t.Helper()
+	return deployCNPGOperatorFromManifest(t, kubeconfigPath, version, namespace, postgresImage)
+}
+
+func deployCNPGOperatorFromManifest(t *testing.T, kubeconfigPath, version, namespace, postgresImage string) *CNPGOperator {
 	t.Helper()
 
 	// Get project root
@@ -252,6 +294,26 @@ func DeployCNPGOperatorFromManifest(t *testing.T, kubeconfigPath, version, names
 	kubectlOptions := k8s.NewKubectlOptions("", kubeconfigPath, namespace)
 
 	t.Logf("Deploying CNPG operator %s from manifest: %s", version, manifestPath)
+
+	// The manifest does not ship the operator config map, and the operator only reads it
+	// at startup, so create it before applying the manifest.
+	if postgresImage != "" {
+		configMap := fmt.Sprintf(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: %[1]s
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-controller-manager-config
+  namespace: %[1]s
+data:
+  POSTGRES_IMAGE_NAME: %[2]s
+`, namespace, postgresImage)
+		require.NoError(t, k8s.KubectlApplyFromStringE(t, kubectlOptions, configMap), "Failed to create operator config map")
+		t.Logf("Set POSTGRES_IMAGE_NAME=%s in operator config", postgresImage)
+	}
 
 	// Apply the manifest using server-side apply to avoid annotation size limit on large CRDs
 	// The poolers.postgresql.cnpg.io CRD exceeds the 256KB annotation limit with client-side apply
