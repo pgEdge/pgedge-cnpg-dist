@@ -1,6 +1,6 @@
 module github.com/pgedge/pgedge-cnpg-dist
 
-go 1.25.12
+go 1.26.10
 
 require (
 	github.com/gruntwork-io/terratest v0.48.1
