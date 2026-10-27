@@ -103,10 +103,10 @@ jobs:
               echo "::error::Expected 'FROM ... golang ... AS gobuilder' not found in $f; GOTOOLCHAIN patch cannot be applied. Refusing to build." >&2
               exit 1
             fi
-            sed -i '/^FROM.*golang.*AS gobuilder/a ENV GOTOOLCHAIN=go1.26.5+auto' "$f"
+            sed -i '/^FROM.*golang.*AS gobuilder/a ENV GOTOOLCHAIN=go1.26.10+auto' "$f"
             # Verify the patch actually landed before proceeding.
-            if ! grep -qF 'ENV GOTOOLCHAIN=go1.26.5+auto' "$f"; then
-              echo "::error::Failed to inject 'ENV GOTOOLCHAIN=go1.26.5+auto' into $f." >&2
+            if ! grep -qF 'ENV GOTOOLCHAIN=go1.26.10+auto' "$f"; then
+              echo "::error::Failed to inject 'ENV GOTOOLCHAIN=go1.26.10+auto' into $f." >&2
               exit 1
             fi
             echo "✅ Patched $f"

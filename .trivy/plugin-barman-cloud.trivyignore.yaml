@@ -5,7 +5,7 @@
 #         Go dependencies are not updated until upstream cloudnative-pg/plugin-barman-cloud
 #         releases a new tagged version with fixes. Fixes requiring go.mod source changes
 #         cannot be applied by a rebuild alone.
-# Note: Go stdlib CVEs are fixed by setting GOTOOLCHAIN=go1.26.5+auto in the build workflow
+# Note: Go stdlib CVEs are fixed by setting GOTOOLCHAIN=go1.26.10+auto in the build workflow
 #       (.github/workflows/build-barman-sidecar.yml), so they are NOT suppressed here.
 
 vulnerabilities:
