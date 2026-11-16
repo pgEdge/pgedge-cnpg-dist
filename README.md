@@ -48,7 +48,7 @@ We redistribute CloudNativePG Helm charts with modifications to use pgEdge-built
 | Chart | Latest Version | Upstream Source |
 |-------|----------|-----------------|
 | `charts/cloudnative-pg/` | v0.29.1 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
-| `charts/plugin-barman-cloud/` | v0.8.1 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
+| `charts/plugin-barman-cloud/` | v0.9.0 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
 
 **Modifications:**
 
