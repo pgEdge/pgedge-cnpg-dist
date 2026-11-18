@@ -10,21 +10,6 @@
 vulnerabilities:
 
   # ── Go binary dependencies (pinned in upstream plugin-barman-cloud go.mod) ────
-  - id: CVE-2026-25681
-    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
-    purls:
-      - "pkg:golang/golang.org/x/net@v0.53.0"
-    expired_at: 2026-10-27
-  - id: CVE-2026-27136
-    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
-    purls:
-      - "pkg:golang/golang.org/x/net@v0.53.0"
-    expired_at: 2026-10-27
-  - id: CVE-2026-39821
-    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
-    purls:
-      - "pkg:golang/golang.org/x/net@v0.53.0"
-    expired_at: 2026-10-27
   - id: GHSA-hrxh-6v49-42gf
     statement: "google.golang.org/grpc v1.81.1 pinned in upstream plugin-barman-cloud go.mod; fix requires 1.82.1. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
     purls:
@@ -34,21 +19,6 @@ vulnerabilities:
     statement: "github.com/google/cel-go v0.26.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.29.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
     purls:
       - "pkg:golang/github.com/google/cel-go@v0.26.0"
-    expired_at: 2026-10-27
-  - id: CVE-2026-25680
-    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
-    purls:
-      - "pkg:golang/golang.org/x/net@v0.53.0"
-    expired_at: 2026-10-27
-  - id: CVE-2026-42502
-    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
-    purls:
-      - "pkg:golang/golang.org/x/net@v0.53.0"
-    expired_at: 2026-10-27
-  - id: CVE-2026-42506
-    statement: "golang.org/x/net v0.53.0 pinned in upstream plugin-barman-cloud go.mod; fix requires 0.55.0. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
-    purls:
-      - "pkg:golang/golang.org/x/net@v0.53.0"
     expired_at: 2026-10-27
 
   # ── Go binary: golang.org/x/net v0.60.0 — not affected ───────────────────────
