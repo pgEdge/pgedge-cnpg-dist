@@ -1,6 +1,6 @@
 # Trivy ignore file for ghcr.io/pgedge/plugin-barman-cloud-sidecar
 # Policy: OS packages (Debian base) are not updated beyond what the base image provides
-#         at build time; CVEs with no fix are suppressed pending Debian packaging.
+#         at build time. OS CVEs with no fix available in Debian are not suppressed.
 #         Go and Python dependencies are pinned by upstream cloudnative-pg/plugin-barman-cloud
 #         and are not updated until upstream releases a new tagged version. Fixes requiring
 #         go.mod / dependency-lock source changes cannot be applied by a rebuild alone.
