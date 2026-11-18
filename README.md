@@ -47,7 +47,7 @@ We redistribute CloudNativePG Helm charts with modifications to use pgEdge-built
 
 | Chart | Latest Version | Upstream Source |
 |-------|----------|-----------------|
-| `charts/cloudnative-pg/` | v0.29.1 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
+| `charts/cloudnative-pg/` | v0.29.2 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
 | `charts/plugin-barman-cloud/` | v0.8.1 | [cloudnative-pg/charts](https://github.com/cloudnative-pg/charts) |
 
 **Modifications:**
@@ -95,6 +95,7 @@ We redistribute CloudNativePG installation manifests with modifications to use p
 | v1.29.3 | [cloudnative-pg v1.29.3](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.29.3) |
 | v1.30.0 | [cloudnative-pg v1.30.0](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.30.0) |
 | v1.30.1 | [cloudnative-pg v1.30.1](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.30.1) |
+| v1.30.2 | [cloudnative-pg v1.30.2](https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.30.2) |
 
 **Modification:** Operator image references changed to `ghcr.io/pgedge/` registry.
 
@@ -215,8 +216,8 @@ This repository contains components under different licenses:
 | Component | License | Location |
 |-----------|---------|----------|
 | pgEdge tests and tooling | [PostgreSQL License](LICENSE) | `tests/`, `.github/`, `Makefile` |
-| CloudNativePG charts | [Apache License 2.0](charts/cloudnative-pg/v0.29.1/LICENSE) | `charts/` |
-| CloudNativePG manifests | [Apache License 2.0](manifests/cloudnative-pg/v1.30.1/LICENSE) | `manifests/` |
+| CloudNativePG charts | [Apache License 2.0](charts/cloudnative-pg/v0.29.2/LICENSE) | `charts/` |
+| CloudNativePG manifests | [Apache License 2.0](manifests/cloudnative-pg/v1.30.2/LICENSE) | `manifests/` |
 
 See [NOTICE](NOTICE) for full attribution and trademark details.
 
