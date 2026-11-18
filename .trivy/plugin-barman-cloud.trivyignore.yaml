@@ -46,6 +46,22 @@ vulnerabilities:
       - "pkg:golang/golang.org/x/net@v0.53.0"
     expired_at: 2026-10-27
 
+  # ── Go binary: golang.org/x/net v0.60.0 — not affected ───────────────────────
+  # CVE-2026-78661 and CVE-2026-97045 are in golang.org/x/net/html. govulncheck
+  # (binary mode, v0.16.0 manager) shows the module is present but the html package
+  # is not imported, so the vulnerable code is not in the binary.
+
+  - id: CVE-2026-78661
+    statement: "Not affected: vulnerability is in golang.org/x/net/html (GO-2026-6860), which the plugin-barman-cloud v0.16.0 manager binary does not import (verified with govulncheck -mode=binary). Fixed upstream in x/net v0.62.0."
+    purls:
+      - "pkg:golang/golang.org/x/net@v0.60.0"
+    expired_at: 2027-02-18
+  - id: CVE-2026-97045
+    statement: "Not affected: vulnerability is in golang.org/x/net/html (GO-2026-6866), which the plugin-barman-cloud v0.16.0 manager binary does not import (verified with govulncheck -mode=binary). Fixed upstream in x/net v0.62.0."
+    purls:
+      - "pkg:golang/golang.org/x/net@v0.60.0"
+    expired_at: 2027-02-18
+
   # ── Go binary: google.golang.org/grpc ────────────────────────────────────────
   # Pinned at v1.81.1 in upstream plugin-barman-cloud go.mod; fix requires v1.82.1.
   # Requires a go.mod source change — cannot be applied by a rebuild alone.
