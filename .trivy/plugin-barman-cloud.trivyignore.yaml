@@ -1,7 +1,7 @@
 # Trivy ignore file for ghcr.io/pgedge/plugin-barman-cloud
 # Policy: OS packages are provided by the registry.access.redhat.com/ubi9/ubi-micro base
-#         image (floating tag) and are refreshed by rebuilding; only OS CVEs with no fix
-#         available in RHEL 9 are suppressed here.
+#         image (floating tag) and are refreshed by rebuilding. OS CVEs with no fix
+#         available in RHEL 9 are not suppressed.
 #         Go dependencies are not updated until upstream cloudnative-pg/plugin-barman-cloud
 #         releases a new tagged version with fixes. Fixes requiring go.mod source changes
 #         cannot be applied by a rebuild alone.
