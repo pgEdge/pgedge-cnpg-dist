@@ -149,13 +149,14 @@ func cloneCNPGRepo(t *testing.T, gitTag, cnpgVersion, postgresVersion string) st
 // - backup-restore, snapshot: pgEdge images use new Barman Cloud Plugin
 // - postgres-major-upgrade: requires specific upgrade path setup
 // - plugin: requires plugin infrastructure not available in test environment
+// - plugin-barman-cloud: requires the Barman Cloud Plugin and its ObjectStore CRD (not installed)
 // - observability: requires PodMonitor CRD from prometheus-operator
 // - postgres-configuration: rolling update tests fail with pgEdge images (image tag format)
 // - pod-scheduling: affinity test fails in CI environment
 // - cluster-metadata: configuration update tests timeout due to resource contention in CI
 // - self-healing: fast failover with sync replicas is timing-sensitive and flaky in CI
 var e2eExcludeFilters = []string{
-	"!backup-restore", "!snapshot", "!postgres-major-upgrade", "!plugin",
+	"!backup-restore", "!snapshot", "!postgres-major-upgrade", "!plugin", "!plugin-barman-cloud",
 	"!observability", "!postgres-configuration", "!pod-scheduling",
 	"!cluster-metadata", "!self-healing",
 }
