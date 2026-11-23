@@ -82,5 +82,5 @@ func TestPgedgeHelm(t *testing.T) {
 	helpers.RunPgedgeHelmIntegrationTests(t, kubeconfigPath, kubeContext, pgedgeHelmPath, postgresImage,
 		cfg.PgedgeHelm.ChartRepo, "pgedge/pgedge", chartVersion, 2*time.Hour)
 
-	t.Log("TestPgedgeHelm completed successfully - all pgedge-helm integration tests passed")
+	t.Log("TestPgedgeHelm completed successfully - pgedge-helm integration tests passed (TestUnplannedFailover excluded)")
 }

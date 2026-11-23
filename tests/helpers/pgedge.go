@@ -206,6 +206,7 @@ func RunPgedgeHelmIntegrationTests(t *testing.T, kubeconfigPath, kubeContext, pg
 	t.Helper()
 
 	t.Logf("Running pgedge-helm integration tests (context: %s, chart: %s@%s)", kubeContext, chartRef, chartVersion)
+	t.Log("Excluding pgedge-helm test TestUnplannedFailover (TEMP, see pgEdge/pgedge-helm#74); it will not run or be reported")
 
 	ensureGotestsum(t)
 
@@ -218,6 +219,10 @@ func RunPgedgeHelmIntegrationTests(t *testing.T, kubeconfigPath, kubeContext, pg
 		"-tags", "integration",
 		"-v",
 		fmt.Sprintf("-timeout=%s", totalTimeout.String()),
+		// TEMP: TestUnplannedFailover is broken in the current pgedge-helm release. It is
+		// replaced in https://github.com/pgEdge/pgedge-helm/pull/74 (merged, not yet
+		// released). Remove this skip once a pgedge-helm release includes that change.
+		"-skip", "^TestUnplannedFailover$",
 		"./test/integration/...",
 	)
 	cmd.Dir = pgedgeHelmPath
@@ -237,7 +242,7 @@ func RunPgedgeHelmIntegrationTests(t *testing.T, kubeconfigPath, kubeContext, pg
 	cmd.Stderr = os.Stderr
 
 	require.NoError(t, cmd.Run(), "pgedge-helm integration tests failed")
-	t.Log("pgedge-helm integration tests completed successfully")
+	t.Log("pgedge-helm integration tests completed successfully (excluding TestUnplannedFailover)")
 }
 
 // ensureGotestsum installs gotestsum if it is not already on PATH.
