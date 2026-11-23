@@ -218,6 +218,10 @@ func RunPgedgeHelmIntegrationTests(t *testing.T, kubeconfigPath, kubeContext, pg
 		"-tags", "integration",
 		"-v",
 		fmt.Sprintf("-timeout=%s", totalTimeout.String()),
+		// TEMP: TestUnplannedFailover is broken in the current pgedge-helm release. It is
+		// replaced in https://github.com/pgEdge/pgedge-helm/pull/74 (merged, not yet
+		// released). Remove this skip once a pgedge-helm release includes that change.
+		"-skip", "^TestUnplannedFailover$",
 		"./test/integration/...",
 	)
 	cmd.Dir = pgedgeHelmPath
