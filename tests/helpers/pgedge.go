@@ -206,6 +206,7 @@ func RunPgedgeHelmIntegrationTests(t *testing.T, kubeconfigPath, kubeContext, pg
 	t.Helper()
 
 	t.Logf("Running pgedge-helm integration tests (context: %s, chart: %s@%s)", kubeContext, chartRef, chartVersion)
+	t.Log("Excluding pgedge-helm test TestUnplannedFailover (TEMP, see pgEdge/pgedge-helm#74); it will not run or be reported")
 
 	ensureGotestsum(t)
 
@@ -241,7 +242,7 @@ func RunPgedgeHelmIntegrationTests(t *testing.T, kubeconfigPath, kubeContext, pg
 	cmd.Stderr = os.Stderr
 
 	require.NoError(t, cmd.Run(), "pgedge-helm integration tests failed")
-	t.Log("pgedge-helm integration tests completed successfully")
+	t.Log("pgedge-helm integration tests completed successfully (excluding TestUnplannedFailover)")
 }
 
 // ensureGotestsum installs gotestsum if it is not already on PATH.
