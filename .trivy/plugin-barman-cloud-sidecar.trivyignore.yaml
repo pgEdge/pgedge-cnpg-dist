@@ -1,6 +1,6 @@
 # Trivy ignore file for ghcr.io/pgedge/plugin-barman-cloud-sidecar
 # Policy: OS packages (Debian base) are not updated beyond what the base image provides
-#         at build time. OS CVEs with no fix available in Debian are not suppressed.
+#         at build time; CVEs with no fix are suppressed pending Debian packaging.
 #         Go and Python dependencies are pinned by upstream cloudnative-pg/plugin-barman-cloud
 #         and are not updated until upstream releases a new tagged version. Fixes requiring
 #         go.mod / dependency-lock source changes cannot be applied by a rebuild alone.
@@ -23,4 +23,208 @@ vulnerabilities:
     statement: "Not affected: vulnerability is in golang.org/x/net/html (GO-2026-6866), which the plugin-barman-cloud v0.16.0 manager binary does not import (verified with govulncheck -mode=binary). Fixed upstream in x/net v0.62.0."
     purls:
       - "pkg:golang/golang.org/x/net@v0.60.0"
+    expired_at: 2027-02-18
+
+  # ── OS packages: Debian 13 (trixie) — still present in the v0.16.0 image ───
+  # libbz2-1.0
+  - id: CVE-2026-42250
+    statement: "libbz2-1.0: medium-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libbz2-1.0"
+    expired_at: 2027-02-18
+  # libc-bin, libc6
+  - id: CVE-2010-4756
+    statement: "libc-bin, libc6: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libc-bin"
+      - "pkg:deb/debian/libc6"
+    expired_at: 2027-02-18
+  - id: CVE-2018-20796
+    statement: "libc-bin, libc6: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libc-bin"
+      - "pkg:deb/debian/libc6"
+    expired_at: 2027-02-18
+  - id: CVE-2019-1010022
+    statement: "libc-bin, libc6: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libc-bin"
+      - "pkg:deb/debian/libc6"
+    expired_at: 2027-02-18
+  - id: CVE-2019-1010023
+    statement: "libc-bin, libc6: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libc-bin"
+      - "pkg:deb/debian/libc6"
+    expired_at: 2027-02-18
+  - id: CVE-2019-1010024
+    statement: "libc-bin, libc6: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libc-bin"
+      - "pkg:deb/debian/libc6"
+    expired_at: 2027-02-18
+  - id: CVE-2019-1010025
+    statement: "libc-bin, libc6: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libc-bin"
+      - "pkg:deb/debian/libc6"
+    expired_at: 2027-02-18
+  - id: CVE-2019-9192
+    statement: "libc-bin, libc6: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libc-bin"
+      - "pkg:deb/debian/libc6"
+    expired_at: 2027-02-18
+  - id: CVE-2026-5435
+    statement: "libc-bin, libc6: fixed in Debian 13 (trixie) 2.41-12+deb13u5; the fix is picked up when the image is rebuilt from main. Suppressed until that rebuild."
+    purls:
+      - "pkg:deb/debian/libc-bin@2.41-12%2Bdeb13u4"
+      - "pkg:deb/debian/libc6@2.41-12%2Bdeb13u4"
+    expired_at: 2026-12-31
+  - id: CVE-2026-6238
+    statement: "libc-bin, libc6: fixed in Debian 13 (trixie) 2.41-12+deb13u5; the fix is picked up when the image is rebuilt from main. Suppressed until that rebuild."
+    purls:
+      - "pkg:deb/debian/libc-bin@2.41-12%2Bdeb13u4"
+      - "pkg:deb/debian/libc6@2.41-12%2Bdeb13u4"
+    expired_at: 2026-12-31
+  # libexpat1
+  - id: CVE-2025-66382
+    statement: "libexpat1: medium-severity issue with no fixed version in Debian 13 (trixie) (Debian: fix deferred). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libexpat1"
+    expired_at: 2027-02-18
+  # libgssapi-krb5-2, libk5crypto3, libkrb5-3, libkrb5support0
+  - id: CVE-2018-5709
+    statement: "libgssapi-krb5-2, libk5crypto3, libkrb5-3, libkrb5support0: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    expired_at: 2027-02-18
+  - id: CVE-2024-26458
+    statement: "libgssapi-krb5-2, libk5crypto3, libkrb5-3, libkrb5support0: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    expired_at: 2027-02-18
+  - id: CVE-2024-26461
+    statement: "libgssapi-krb5-2, libk5crypto3, libkrb5-3, libkrb5support0: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    expired_at: 2027-02-18
+  - id: CVE-2026-11850
+    statement: "libgssapi-krb5-2, libk5crypto3, libkrb5-3, libkrb5support0: fixed in Debian 13 (trixie) 1.21.3-5+deb13u2; the fix is picked up when the image is rebuilt from main. Suppressed until that rebuild."
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2@1.21.3-5%2Bdeb13u1"
+      - "pkg:deb/debian/libk5crypto3@1.21.3-5%2Bdeb13u1"
+      - "pkg:deb/debian/libkrb5-3@1.21.3-5%2Bdeb13u1"
+      - "pkg:deb/debian/libkrb5support0@1.21.3-5%2Bdeb13u1"
+    expired_at: 2026-12-31
+  # libncursesw6, libtinfo6
+  - id: CVE-2025-6141
+    statement: "libncursesw6, libtinfo6: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libncursesw6"
+      - "pkg:deb/debian/libtinfo6"
+    expired_at: 2027-02-18
+  - id: CVE-2025-69720
+    statement: "Not affected: the overflow is in the infocmp command-line tool (progs/infocmp.c). The image ships only the ncurses libraries (libncursesw6, libtinfo6); ncurses-bin and infocmp are not installed, and nothing in the sidecar runs it. No fix in Debian 13 yet."
+    purls:
+      - "pkg:deb/debian/libncursesw6"
+      - "pkg:deb/debian/libtinfo6"
+    expired_at: 2027-02-18
+  # libpython3.13-minimal, libpython3.13-stdlib, python3.13-minimal, python3.13-venv
+  - id: CVE-2025-12781
+    statement: "libpython3.13-minimal, libpython3.13-stdlib, python3.13-minimal, python3.13-venv: medium-severity issue with no fixed version in Debian 13 (trixie) (Debian: will not fix). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libpython3.13-minimal"
+      - "pkg:deb/debian/libpython3.13-stdlib"
+      - "pkg:deb/debian/python3.13-minimal"
+      - "pkg:deb/debian/python3.13-venv"
+    expired_at: 2027-02-18
+  - id: CVE-2025-15366
+    statement: "libpython3.13-minimal, libpython3.13-stdlib, python3.13-minimal, python3.13-venv: medium-severity issue with no fixed version in Debian 13 (trixie) (Debian: will not fix). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libpython3.13-minimal"
+      - "pkg:deb/debian/libpython3.13-stdlib"
+      - "pkg:deb/debian/python3.13-minimal"
+      - "pkg:deb/debian/python3.13-venv"
+    expired_at: 2027-02-18
+  - id: CVE-2025-15367
+    statement: "libpython3.13-minimal, libpython3.13-stdlib, python3.13-minimal, python3.13-venv: medium-severity issue with no fixed version in Debian 13 (trixie) (Debian: will not fix). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libpython3.13-minimal"
+      - "pkg:deb/debian/libpython3.13-stdlib"
+      - "pkg:deb/debian/python3.13-minimal"
+      - "pkg:deb/debian/python3.13-venv"
+    expired_at: 2027-02-18
+  - id: CVE-2026-12003
+    statement: "libpython3.13-minimal, libpython3.13-stdlib, python3.13-minimal, python3.13-venv: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libpython3.13-minimal"
+      - "pkg:deb/debian/libpython3.13-stdlib"
+      - "pkg:deb/debian/python3.13-minimal"
+      - "pkg:deb/debian/python3.13-venv"
+    expired_at: 2027-02-18
+  - id: CVE-2026-15308
+    statement: "Not affected in practice: CPU DoS in html.parser.HTMLParser on uncontrolled input. In the sidecar venv HTMLParser is only referenced by botocore's documentation helper (botocore/docs/bcdoc) and six compatibility shims; Barman and the object-store clients do not parse HTML from remote data. No fix in Debian 13 yet."
+    purls:
+      - "pkg:deb/debian/libpython3.13-minimal"
+      - "pkg:deb/debian/libpython3.13-stdlib"
+      - "pkg:deb/debian/python3.13-minimal"
+      - "pkg:deb/debian/python3.13-venv"
+    expired_at: 2027-02-18
+  - id: CVE-2026-3479
+    statement: "libpython3.13-minimal, libpython3.13-stdlib, python3.13-minimal, python3.13-venv: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libpython3.13-minimal"
+      - "pkg:deb/debian/libpython3.13-stdlib"
+      - "pkg:deb/debian/python3.13-minimal"
+      - "pkg:deb/debian/python3.13-venv"
+    expired_at: 2027-02-18
+  - id: CVE-2026-7210
+    statement: "Risk accepted: hash-flooding DoS in xml.parsers.expat / ElementTree. botocore and azure-storage-blob parse XML responses, so it is reachable only through responses from the object-store endpoint configured in the ObjectStore resource (operator-controlled, normally TLS). Impact is CPU exhaustion of the backup sidecar, not code execution. No fix in Debian 13 yet; revisit when Debian ships one."
+    purls:
+      - "pkg:deb/debian/libpython3.13-minimal"
+      - "pkg:deb/debian/libpython3.13-stdlib"
+      - "pkg:deb/debian/python3.13-minimal"
+      - "pkg:deb/debian/python3.13-venv"
+    expired_at: 2027-02-18
+  # libsqlite3-0
+  - id: CVE-2021-45346
+    statement: "libsqlite3-0: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libsqlite3-0"
+    expired_at: 2027-02-18
+  - id: CVE-2025-70873
+    statement: "libsqlite3-0: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libsqlite3-0"
+    expired_at: 2027-02-18
+  - id: CVE-2026-50812
+    statement: "libsqlite3-0: medium-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libsqlite3-0"
+    expired_at: 2027-02-18
+  - id: CVE-2026-50813
+    statement: "libsqlite3-0: medium-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libsqlite3-0"
+    expired_at: 2027-02-18
+  # libuuid1
+  - id: CVE-2022-0563
+    statement: "libuuid1: low-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libuuid1"
+    expired_at: 2027-02-18
+  - id: CVE-2026-3184
+    statement: "libuuid1: medium-severity issue with no fixed version in Debian 13 (trixie). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:deb/debian/libuuid1"
     expired_at: 2027-02-18

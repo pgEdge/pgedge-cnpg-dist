@@ -1,7 +1,7 @@
 # Trivy ignore file for ghcr.io/pgedge/plugin-barman-cloud
 # Policy: OS packages are provided by the registry.access.redhat.com/ubi9/ubi-micro base
-#         image (floating tag) and are refreshed by rebuilding. OS CVEs with no fix
-#         available in RHEL 9 are not suppressed.
+#         image (floating tag) and are refreshed by rebuilding; only OS CVEs with no fix
+#         available in RHEL 9 are suppressed here.
 #         Go dependencies are not updated until upstream cloudnative-pg/plugin-barman-cloud
 #         releases a new tagged version with fixes. Fixes requiring go.mod source changes
 #         cannot be applied by a rebuild alone.
@@ -24,4 +24,31 @@ vulnerabilities:
     statement: "Not affected: vulnerability is in golang.org/x/net/html (GO-2026-6866), which the plugin-barman-cloud v0.16.0 manager binary does not import (verified with govulncheck -mode=binary). Fixed upstream in x/net v0.62.0."
     purls:
       - "pkg:golang/golang.org/x/net@v0.60.0"
+    expired_at: 2027-02-18
+
+  # ── OS packages: RHEL 9 (ubi9/ubi-micro base) — still present in the v0.16.0 image ───
+  # libgcc
+  - id: CVE-2021-46195
+    statement: "libgcc: low-severity issue with no fixed version in RHEL 9 (ubi9/ubi-micro base). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:rpm/redhat/libgcc"
+    expired_at: 2027-02-18
+  - id: CVE-2022-27943
+    statement: "libgcc: low-severity issue with no fixed version in RHEL 9 (ubi9/ubi-micro base). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:rpm/redhat/libgcc"
+    expired_at: 2027-02-18
+  # ncurses-base, ncurses-libs
+  - id: CVE-2023-50495
+    statement: "ncurses-base, ncurses-libs: low-severity issue with no fixed version in RHEL 9 (ubi9/ubi-micro base). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:rpm/redhat/ncurses-base"
+      - "pkg:rpm/redhat/ncurses-libs"
+    expired_at: 2027-02-18
+  # pcre2, pcre2-syntax
+  - id: CVE-2022-41409
+    statement: "pcre2, pcre2-syntax: low-severity issue with no fixed version in RHEL 9 (ubi9/ubi-micro base). Suppressed pending vendor packaging; refreshed by rebuilding."
+    purls:
+      - "pkg:rpm/redhat/pcre2"
+      - "pkg:rpm/redhat/pcre2-syntax"
     expired_at: 2027-02-18
