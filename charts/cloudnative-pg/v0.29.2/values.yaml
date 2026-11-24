@@ -22,6 +22,7 @@
 #
 # MODIFIED by pgEdge, Inc. (2025-2026)
 # Change: image.repository default changed to ghcr.io/pgedge/cloudnative-pg
+# Change: image.tag default set to the pgEdge build 1.30.2-1
 #
 
 replicaCount: 1
@@ -30,7 +31,8 @@ image:
   repository: ghcr.io/pgedge/cloudnative-pg
   pullPolicy: IfNotPresent
   # -- Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  # pgEdge images carry a build number (1.30.2-1, 1.30.2-2, ...); set a newer one to pick up rebuilt images.
+  tag: "1.30.2-1"
 
 imagePullSecrets: []
 nameOverride: ""

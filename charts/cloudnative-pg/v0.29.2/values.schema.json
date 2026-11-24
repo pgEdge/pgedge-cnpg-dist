@@ -165,7 +165,7 @@
           "type": "string"
         },
         "tag": {
-          "default": "",
+          "default": "1.30.2-1",
           "description": "Overrides the image tag whose default is the chart appVersion.",
           "type": "string"
         }

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # MODIFIED by pgEdge, Inc. (2025-2026)
-# Change: Operator image references changed to ghcr.io/pgedge/cloudnative-pg
+# Change: Operator image references changed to ghcr.io/pgedge/cloudnative-pg:1.30.2-1 (pgEdge build 1)
 #
 # Source: https://github.com/cloudnative-pg/cloudnative-pg/releases/tag/v1.30.2
 apiVersion: v1
@@ -21096,14 +21096,14 @@ spec:
         - /manager
         env:
         - name: OPERATOR_IMAGE_NAME
-          value: ghcr.io/pgedge/cloudnative-pg:1.30.2
+          value: ghcr.io/pgedge/cloudnative-pg:1.30.2-1
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
         - name: MONITORING_QUERIES_CONFIGMAP
           value: cnpg-default-monitoring
-        image: ghcr.io/pgedge/cloudnative-pg:1.30.2
+        image: ghcr.io/pgedge/cloudnative-pg:1.30.2-1
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

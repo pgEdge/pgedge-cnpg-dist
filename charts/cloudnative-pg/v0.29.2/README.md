@@ -2,6 +2,7 @@
 MODIFIED by pgEdge, Inc. (2025-2026)
 Change: Installation instructions point to the pgEdge Helm repository (pgedge/cloudnative-pg)
 Change: image.repository default changed to ghcr.io/pgedge/cloudnative-pg
+Change: image.tag default set to the pgEdge build 1.30.2-1
 Change: Grafana dashboard subchart removed from the Requirements table
 -->
 # cloudnative-pg
@@ -154,7 +155,7 @@ Kubernetes: `>=1.29.0-0`
 | hostNetwork | bool | `false` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"ghcr.io/pgedge/cloudnative-pg"` |  |
-| image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
+| image.tag | string | `"1.30.2-1"` | Overrides the image tag whose default is the chart appVersion. pgEdge images carry a build number (1.30.2-1, 1.30.2-2, ...); set a newer one to pick up rebuilt images. |
 | imagePullSecrets | list | `[]` |  |
 | monitoring.grafanaDashboard.annotations | object | `{}` | Annotations that ConfigMaps can have to get configured in Grafana. |
 | monitoring.grafanaDashboard.configMapName | string | `"cnpg-grafana-dashboard"` | The name of the ConfigMap containing the dashboard. |

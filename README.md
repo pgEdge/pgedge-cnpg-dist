@@ -52,7 +52,7 @@ We redistribute CloudNativePG Helm charts with modifications to use pgEdge-built
 
 **Modifications:**
 
-- `charts/cloudnative-pg/`: default image references changed to the `ghcr.io/pgedge/` registry; Grafana dashboard subchart dependency removed from `Chart.yaml`; chart README installation instructions point to the pgEdge Helm repository (v0.29.1 and later).
+- `charts/cloudnative-pg/`: default image references changed to the `ghcr.io/pgedge/` registry; Grafana dashboard subchart dependency removed from `Chart.yaml`; chart README installation instructions point to the pgEdge Helm repository (v0.29.1 and later); default image tag set to a pgEdge build number such as `1.30.2-1` (v0.29.2 and later).
 - `charts/plugin-barman-cloud/`: default image references changed to the `ghcr.io/pgedge/` registry; chart README installation instructions point to the pgEdge Helm repository (v0.8.1 and later).
 
 ### Installing from pgEdge Helm Repository
