@@ -156,7 +156,7 @@
           "type": "string"
         },
         "tag": {
-          "default": "",
+          "default": "v0.16.0-1",
           "description": "Overrides the image tag whose default is the chart appVersion.",
           "type": "string"
         }
@@ -314,7 +314,7 @@
           "type": "string"
         },
         "tag": {
-          "default": "",
+          "default": "v0.16.0-1",
           "description": "Overrides the image tag whose default is the chart appVersion.",
           "type": "string"
         }

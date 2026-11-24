@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # MODIFIED by pgEdge, Inc. (2025-2026)
-# Change: Controller image references changed to ghcr.io/pgedge/plugin-barman-cloud
-# Change: Sidecar image references changed to ghcr.io/pgedge/plugin-barman-cloud-sidecar
+# Change: Controller image references changed to ghcr.io/pgedge/plugin-barman-cloud:v0.16.0-1 (pgEdge build 1)
+# Change: Sidecar image references changed to ghcr.io/pgedge/plugin-barman-cloud-sidecar:v0.16.0-1 (pgEdge build 1)
 #
 # Source: https://github.com/cloudnative-pg/plugin-barman-cloud/releases/tag/v0.16.0
 
@@ -1018,7 +1018,7 @@ subjects:
 ---
 apiVersion: v1
 data:
-  SIDECAR_IMAGE: Z2hjci5pby9wZ2VkZ2UvcGx1Z2luLWJhcm1hbi1jbG91ZC1zaWRlY2FyOnYwLjE2LjA=
+  SIDECAR_IMAGE: Z2hjci5pby9wZ2VkZ2UvcGx1Z2luLWJhcm1hbi1jbG91ZC1zaWRlY2FyOnYwLjE2LjAtMQ==
 kind: Secret
 metadata:
   name: plugin-barman-cloud-5kkd8f288d
@@ -1079,7 +1079,7 @@ spec:
             secretKeyRef:
               key: SIDECAR_IMAGE
               name: plugin-barman-cloud-5kkd8f288d
-        image: ghcr.io/pgedge/plugin-barman-cloud:v0.16.0
+        image: ghcr.io/pgedge/plugin-barman-cloud:v0.16.0-1
         name: barman-cloud
         ports:
         - containerPort: 9090

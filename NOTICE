@@ -61,6 +61,8 @@ Location: charts/plugin-barman-cloud/
   Modification: Default image references changed to ghcr.io/pgedge/ registry.
                 Chart README installation instructions point to the pgEdge Helm
                 repository (v0.8.1 and later).
+                Default image tags set to a pgEdge build number, e.g. v0.16.0-1
+                (v0.9.0 and later).
 
 Manifests
 ---------

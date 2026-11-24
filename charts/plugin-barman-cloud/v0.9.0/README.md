@@ -3,6 +3,7 @@ MODIFIED by pgEdge, Inc. (2025-2026)
 Change: Installation instructions point to the pgEdge Helm repository (pgedge/plugin-barman-cloud)
 Change: image.repository default changed to pgedge/plugin-barman-cloud
 Change: sidecarImage.repository default changed to pgedge/plugin-barman-cloud-sidecar
+Change: image.tag and sidecarImage.tag defaults set to the pgEdge build v0.16.0-1
 -->
 # plugin-barman-cloud
 
@@ -107,7 +108,7 @@ Kubernetes: `>=1.29.0-0`
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.registry | string | `"ghcr.io"` |  |
 | image.repository | string | `"pgedge/plugin-barman-cloud"` |  |
-| image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
+| image.tag | string | `"v0.16.0-1"` | Overrides the image tag whose default is the chart appVersion. pgEdge images carry a build number (v0.16.0-1, v0.16.0-2, ...); set a newer one to pick up rebuilt images. |
 | imagePullSecrets | list | `[]` |  |
 | logLevel | string | `"info"` | Log verbosity level for the plugin barman cloud with values: [error, warning, info, debug, trace]. |
 | nameOverride | string | `""` |  |
@@ -129,7 +130,7 @@ Kubernetes: `>=1.29.0-0`
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | sidecarImage.registry | string | `"ghcr.io"` |  |
 | sidecarImage.repository | string | `"pgedge/plugin-barman-cloud-sidecar"` |  |
-| sidecarImage.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
+| sidecarImage.tag | string | `"v0.16.0-1"` | Overrides the image tag whose default is the chart appVersion. pgEdge images carry a build number (v0.16.0-1, v0.16.0-2, ...); set a newer one to pick up rebuilt images. |
 | tolerations | list | `[]` | Tolerations for the operator to be installed. |
 | topologySpreadConstraints | list | `[]` | Topology Spread Constraints for the operator to be installed. |
 | updateStrategy | object | `{}` | Update strategy for the operator. ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy |

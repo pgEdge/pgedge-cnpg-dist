@@ -18,6 +18,7 @@
 #
 # MODIFIED by pgEdge, Inc. (2025-2026)
 # Change: image.repository and sidecarImage.repository defaults changed to pgedge/*
+# Change: image.tag and sidecarImage.tag defaults set to the pgEdge build v0.16.0-1
 #
 # Default values for CloudNativePG.
 # This is a YAML-formatted file.
@@ -38,13 +39,15 @@ image:
   repository: pgedge/plugin-barman-cloud
   pullPolicy: IfNotPresent
   # -- Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  # pgEdge images carry a build number (v0.16.0-1, v0.16.0-2, ...); set a newer one to pick up rebuilt images.
+  tag: "v0.16.0-1"
 
 sidecarImage:
   registry: ghcr.io
   repository: pgedge/plugin-barman-cloud-sidecar
   # -- Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  # pgEdge images carry a build number (v0.16.0-1, v0.16.0-2, ...); set a newer one to pick up rebuilt images.
+  tag: "v0.16.0-1"
 
 # @schema
 # additionalProperties: true
