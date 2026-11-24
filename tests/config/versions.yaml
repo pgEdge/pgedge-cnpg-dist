@@ -9,7 +9,7 @@ cnpg_versions:
     postgres_versions: ["18", "17", "16"]
     providers:
       kind:
-        kubernetes_versions: ["1.34.8", "1.35.5", "1.36.1"]
+        kubernetes_versions: ["1.34.11", "1.35.8", "1.36.4"]
       eks:
         kubernetes_versions: ["1.34"]
 

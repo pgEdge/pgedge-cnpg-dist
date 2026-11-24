@@ -6,12 +6,4 @@
 # Note: Go stdlib CVEs are fixed by setting GOTOOLCHAIN=go1.26.11+auto in the build workflow
 #       (.github/workflows/build-cnpg-operator.yml), so they are NOT suppressed here.
 
-vulnerabilities:
-
-  # ── Go binary: google.golang.org/grpc ────────────────────────────────────────
-  # Pinned at v1.81.1 in upstream cloudnative-pg go.mod.
-  # Fix requires a go.mod source change — cannot be applied by a rebuild alone.
-  # Suppressed pending upstream cloudnative-pg/cloudnative-pg releasing a new tag.
-
-  - id: GHSA-hrxh-6v49-42gf
-    statement: "google.golang.org/grpc v1.81.1 pinned in upstream cloudnative-pg go.mod; fix requires v1.82.1. Requires go.mod source change — cannot be fixed by a rebuild alone. Suppressed pending upstream release."
+vulnerabilities: []
