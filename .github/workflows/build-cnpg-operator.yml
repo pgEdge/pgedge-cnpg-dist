@@ -72,7 +72,8 @@ jobs:
             exit 1
           fi
           # A release tag must match the version being published (v1.30.2 -> 1.30.2-N).
-          if [[ "$INPUT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "${INPUT_VERSION%-*}" != "${INPUT_REF#v}" ]]; then
+          tag="${INPUT_REF#refs/tags/}"
+          if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "${INPUT_VERSION%-*}" != "${tag#v}" ]]; then
             echo "::error::ref $INPUT_REF does not match version $INPUT_VERSION"
             exit 1
           fi
@@ -80,7 +81,7 @@ jobs:
           if out=$(docker buildx imagetools inspect "$ref" 2>&1); then
             echo "::error::$ref already exists; use the next build number"
             exit 1
-          elif ! grep -qiE 'not found|manifest unknown' <<<"$out"; then
+          elif [[ "$(tail -n 1 <<<"$out")" != "ERROR: $ref: not found" ]]; then
             echo "::error::Could not confirm that $ref does not exist: $out"
             exit 1
           fi
