@@ -3,7 +3,6 @@ package providers
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -94,17 +93,27 @@ func (kc *kindCluster) Create(t *testing.T) error {
 			},
 		}
 
+		// KIND_REGISTRY_CONFIG (set by CI on pull requests) is a Docker config.json with registry
+		// credentials. Mounted as the kubelet's config.json, it lets the nodes pull private images,
+		// for example internal operator images.
+		var mounts []v1alpha4.Mount
+		if cfg := os.Getenv("KIND_REGISTRY_CONFIG"); cfg != "" {
+			mounts = []v1alpha4.Mount{{HostPath: cfg, ContainerPath: "/var/lib/kubelet/config.json", Readonly: true}}
+		}
+
 		// Add control plane node
 		kindConfig.Nodes = append(kindConfig.Nodes, v1alpha4.Node{
-			Role:  v1alpha4.ControlPlaneRole,
-			Image: kc.Config.Image,
+			Role:        v1alpha4.ControlPlaneRole,
+			Image:       kc.Config.Image,
+			ExtraMounts: mounts,
 		})
 
 		// Add worker nodes (NodeCount - 1 since we already have control plane)
 		for i := 1; i < kc.Config.Nodes; i++ {
 			kindConfig.Nodes = append(kindConfig.Nodes, v1alpha4.Node{
-				Role:  v1alpha4.WorkerRole,
-				Image: kc.Config.Image,
+				Role:        v1alpha4.WorkerRole,
+				Image:       kc.Config.Image,
+				ExtraMounts: mounts,
 			})
 		}
 
@@ -137,19 +146,6 @@ func (kc *kindCluster) Create(t *testing.T) error {
 	}
 
 	t.Logf("Kind cluster %s created successfully", kc.Name)
-
-	// KIND_LOAD_IMAGES (set by CI on pull requests) lists images that are pulled on the host,
-	// for example private internal images, and loaded into the cluster nodes.
-	for _, img := range strings.Fields(strings.ReplaceAll(os.Getenv("KIND_LOAD_IMAGES"), ",", " ")) {
-		t.Logf("Loading image %s into Kind cluster %s", img, kc.Name)
-		if out, err := exec.Command("kind", "load", "docker-image", img, "--name", kc.Name).CombinedOutput(); err != nil {
-			loadErr := fmt.Errorf("failed to load image %s into Kind cluster: %w: %s", img, err, out)
-			if delErr := kc.Delete(t); delErr != nil {
-				return fmt.Errorf("%w (cleanup also failed: %v)", loadErr, delErr)
-			}
-			return loadErr
-		}
-	}
 	return nil
 }
 

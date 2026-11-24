@@ -89,10 +89,13 @@ jobs:
           version="${CNPG_VERSION:-$(yq '.cnpg_versions[0].version' tests/config/versions.yaml)}"
           public=$(yq ".cnpg_versions[] | select(.version == \"$version\") | .operator_image" tests/config/versions.yaml)
           internal="${public/\/cloudnative-pg:/\/cloudnative-pg-internal:}"
-          if docker pull -q "$internal"; then
+          if docker buildx imagetools inspect "$internal" >/dev/null; then
             echo "Using internal operator image $internal"
+            # Kind nodes pull it with this job's token, mounted as the kubelet's config.json.
+            cfg="$RUNNER_TEMP/kind-registry-config.json"
+            (umask 077; printf '{"auths":{"ghcr.io":{"auth":"%s"}}}' "$(printf '%s:%s' "$GH_ACTOR" "$GH_TOKEN" | base64 -w0)" > "$cfg")
             echo "CNPG_OPERATOR_IMAGE=$internal" >> "$GITHUB_ENV"
-            echo "KIND_LOAD_IMAGES=$internal" >> "$GITHUB_ENV"
+            echo "KIND_REGISTRY_CONFIG=$cfg" >> "$GITHUB_ENV"
           else
             echo "::notice::$internal not found; using public image $public"
           fi
@@ -233,7 +236,7 @@ jobs:
       # Pull requests test the internal operator image (built before review, not yet public).
       # The image is private, so it is pulled here and loaded into the Kind cluster by the tests.
       - name: Use internal operator image
-        # Only Kind loads the image into its nodes; other providers have no ghcr.io credentials.
+        # Only Kind nodes get the ghcr.io login; other providers cannot pull internal images.
         if: matrix.provider == 'kind' && (github.event_name == 'pull_request' || inputs.operator_registry == 'internal')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -244,10 +247,13 @@ jobs:
           version="${CNPG_VERSION:-$(yq '.cnpg_versions[0].version' tests/config/versions.yaml)}"
           public=$(yq ".cnpg_versions[] | select(.version == \"$version\") | .operator_image" tests/config/versions.yaml)
           internal="${public/\/cloudnative-pg:/\/cloudnative-pg-internal:}"
-          if docker pull -q "$internal"; then
+          if docker buildx imagetools inspect "$internal" >/dev/null; then
             echo "Using internal operator image $internal"
+            # Kind nodes pull it with this job's token, mounted as the kubelet's config.json.
+            cfg="$RUNNER_TEMP/kind-registry-config.json"
+            (umask 077; printf '{"auths":{"ghcr.io":{"auth":"%s"}}}' "$(printf '%s:%s' "$GH_ACTOR" "$GH_TOKEN" | base64 -w0)" > "$cfg")
             echo "CNPG_OPERATOR_IMAGE=$internal" >> "$GITHUB_ENV"
-            echo "KIND_LOAD_IMAGES=$internal" >> "$GITHUB_ENV"
+            echo "KIND_REGISTRY_CONFIG=$cfg" >> "$GITHUB_ENV"
           else
             echo "::notice::$internal not found; using public image $public"
           fi
