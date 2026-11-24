@@ -8,13 +8,19 @@ on:
         required: false
         default: "pgedge/cloudnative-pg-internal"
       ref:
-        description: "CNPG Git tag or branch (e.g. v1.27.0 or main)"
+        description: "CNPG Git tag or branch (e.g. v1.30.2 or main)"
         required: true
-        default: "v1.27.0"
+        default: "v1.30.2"
       version:
         description: "Image tag to publish: operator version plus build number (e.g. 1.30.2-1)"
         required: true
         default: "1.30.2-1"
+
+# One run at a time per destination image and tag, so two dispatches cannot both pass the
+# tag check below and then overwrite each other's push.
+concurrency:
+  group: build-cnpg-${{ github.event.inputs.image_name }}-${{ github.event.inputs.version }}
+  cancel-in-progress: false
 
 jobs:
   build-cnpg-operator:
@@ -57,6 +63,7 @@ jobs:
       # number (1.30.2-1, 1.30.2-2, ...) and an existing tag is never overwritten.
       - name: Check image tag
         env:
+          INPUT_REF: ${{ github.event.inputs.ref }}
           INPUT_VERSION: ${{ github.event.inputs.version }}
           INPUT_IMAGE_NAME: ${{ github.event.inputs.image_name }}
         run: |
@@ -64,8 +71,17 @@ jobs:
             echo "::error::version must be <operator version>-<build number>, e.g. 1.30.2-1 (got '$INPUT_VERSION')"
             exit 1
           fi
-          if docker buildx imagetools inspect "ghcr.io/${INPUT_IMAGE_NAME}:${INPUT_VERSION}" >/dev/null 2>&1; then
-            echo "::error::ghcr.io/${INPUT_IMAGE_NAME}:${INPUT_VERSION} already exists; use the next build number"
+          # A release tag must match the version being published (v1.30.2 -> 1.30.2-N).
+          if [[ "$INPUT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "${INPUT_VERSION%-*}" != "${INPUT_REF#v}" ]]; then
+            echo "::error::ref $INPUT_REF does not match version $INPUT_VERSION"
+            exit 1
+          fi
+          ref="ghcr.io/${INPUT_IMAGE_NAME}:${INPUT_VERSION}"
+          if out=$(docker buildx imagetools inspect "$ref" 2>&1); then
+            echo "::error::$ref already exists; use the next build number"
+            exit 1
+          elif ! grep -qiE 'not found|manifest unknown' <<<"$out"; then
+            echo "::error::Could not confirm that $ref does not exist: $out"
             exit 1
           fi
 

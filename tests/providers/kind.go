@@ -143,7 +143,11 @@ func (kc *kindCluster) Create(t *testing.T) error {
 	for _, img := range strings.Fields(strings.ReplaceAll(os.Getenv("KIND_LOAD_IMAGES"), ",", " ")) {
 		t.Logf("Loading image %s into Kind cluster %s", img, kc.Name)
 		if out, err := exec.Command("kind", "load", "docker-image", img, "--name", kc.Name).CombinedOutput(); err != nil {
-			return fmt.Errorf("failed to load image %s into Kind cluster: %w: %s", img, err, out)
+			loadErr := fmt.Errorf("failed to load image %s into Kind cluster: %w: %s", img, err, out)
+			if delErr := kc.Delete(t); delErr != nil {
+				return fmt.Errorf("%w (cleanup also failed: %v)", loadErr, delErr)
+			}
+			return loadErr
 		}
 	}
 	return nil

@@ -233,7 +233,8 @@ jobs:
       # Pull requests test the internal operator image (built before review, not yet public).
       # The image is private, so it is pulled here and loaded into the Kind cluster by the tests.
       - name: Use internal operator image
-        if: github.event_name == 'pull_request' || inputs.operator_registry == 'internal'
+        # Only Kind loads the image into its nodes; other providers have no ghcr.io credentials.
+        if: matrix.provider == 'kind' && (github.event_name == 'pull_request' || inputs.operator_registry == 'internal')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
