@@ -15,10 +15,10 @@ on:
         required: true
         default: "0.16.0-1"
 
-# One run at a time per destination image and tag, so two dispatches cannot both pass the
-# tag check below and then overwrite each other's push.
+# One run at a time per version: every sidecar name pushes the same plugin image, so two
+# dispatches must not both pass the tag check below and then overwrite each other's push.
 concurrency:
-  group: build-barman-${{ inputs.image_name }}-${{ inputs.version }}
+  group: build-barman-${{ inputs.version }}
   cancel-in-progress: false
 
 jobs:
@@ -92,7 +92,8 @@ jobs:
             exit 1
           fi
           # A release tag must match the version being published (v0.16.0 -> 0.16.0-N).
-          if [[ "$INPUT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "${VERSION%-*}" != "${INPUT_REF#v}" ]]; then
+          tag="${INPUT_REF#refs/tags/}"
+          if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "${VERSION%-*}" != "${tag#v}" ]]; then
             echo "::error::ref $INPUT_REF does not match version $VERSION"
             exit 1
           fi
@@ -106,7 +107,7 @@ jobs:
             if out=$(docker buildx imagetools inspect "$ref" 2>&1); then
               echo "::error::$ref already exists; use the next build number"
               exit 1
-            elif ! grep -qiE 'not found|manifest unknown' <<<"$out"; then
+            elif [[ "$(tail -n 1 <<<"$out")" != "ERROR: $ref: not found" ]]; then
               echo "::error::Could not confirm that $ref does not exist: $out"
               exit 1
             fi
