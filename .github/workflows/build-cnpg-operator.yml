@@ -8,13 +8,19 @@ on:
         required: false
         default: "pgedge/cloudnative-pg-internal"
       ref:
-        description: "CNPG Git tag or branch (e.g. v1.27.0 or main)"
+        description: "CNPG Git tag or branch (e.g. v1.30.2 or main)"
         required: true
-        default: "v1.27.0"
+        default: "v1.30.2"
       version:
-        description: "Image tag to publish (e.g. 1.27.0)"
+        description: "Image tag to publish: operator version plus build number (e.g. 1.30.2-1)"
         required: true
-        default: "1.27.0"
+        default: "1.30.2-1"
+
+# One run at a time per destination image and tag, so two dispatches cannot both pass the
+# tag check below and then overwrite each other's push.
+concurrency:
+  group: build-cnpg-${{ github.event.inputs.image_name }}-${{ github.event.inputs.version }}
+  cancel-in-progress: false
 
 jobs:
   build-cnpg-operator:
@@ -38,7 +44,7 @@ jobs:
           cache: true
 
       - name: Enforce minimum Go toolchain for CVE fixes
-        run: echo "GOTOOLCHAIN=go1.26.5+auto" >> $GITHUB_ENV
+        run: echo "GOTOOLCHAIN=go1.26.11+auto" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
@@ -52,6 +58,33 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Images are immutable: every rebuild of an operator version gets the next build
+      # number (1.30.2-1, 1.30.2-2, ...) and an existing tag is never overwritten.
+      - name: Check image tag
+        env:
+          INPUT_REF: ${{ github.event.inputs.ref }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_IMAGE_NAME: ${{ github.event.inputs.image_name }}
+        run: |
+          if ! [[ "$INPUT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
+            echo "::error::version must be <operator version>-<build number>, e.g. 1.30.2-1 (got '$INPUT_VERSION')"
+            exit 1
+          fi
+          # A release tag must match the version being published (v1.30.2 -> 1.30.2-N).
+          tag="${INPUT_REF#refs/tags/}"
+          if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "${INPUT_VERSION%-*}" != "${tag#v}" ]]; then
+            echo "::error::ref $INPUT_REF does not match version $INPUT_VERSION"
+            exit 1
+          fi
+          ref="ghcr.io/${INPUT_IMAGE_NAME}:${INPUT_VERSION}"
+          if out=$(docker buildx imagetools inspect "$ref" 2>&1); then
+            echo "::error::$ref already exists; use the next build number"
+            exit 1
+          elif [[ "$(tail -n 1 <<<"$out")" != "ERROR: $ref: not found" ]]; then
+            echo "::error::Could not confirm that $ref does not exist: $out"
+            exit 1
+          fi
 
       - name: Build manager binaries for amd64 and arm64
         run: |

@@ -180,8 +180,12 @@ func (c *Config) GetCNPGVersion(version string) (*CNPGVersion, error) {
 	return nil, fmt.Errorf("CNPG version %s not found in configuration", version)
 }
 
-// GetOperatorImageName returns the full operator image name
+// GetOperatorImageName returns the full operator image name. CNPG_OPERATOR_IMAGE, when set,
+// overrides the configured image (CI sets it to the internal image on pull requests).
 func (v *CNPGVersion) GetOperatorImageName() string {
+	if img := os.Getenv("CNPG_OPERATOR_IMAGE"); img != "" {
+		return img
+	}
 	return v.OperatorImage
 }
 

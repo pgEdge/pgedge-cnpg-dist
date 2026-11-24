@@ -93,17 +93,27 @@ func (kc *kindCluster) Create(t *testing.T) error {
 			},
 		}
 
+		// KIND_REGISTRY_CONFIG (set by CI on pull requests) is a Docker config.json with registry
+		// credentials. Mounted as the kubelet's config.json, it lets the nodes pull private images,
+		// for example internal operator images.
+		var mounts []v1alpha4.Mount
+		if cfg := os.Getenv("KIND_REGISTRY_CONFIG"); cfg != "" {
+			mounts = []v1alpha4.Mount{{HostPath: cfg, ContainerPath: "/var/lib/kubelet/config.json", Readonly: true}}
+		}
+
 		// Add control plane node
 		kindConfig.Nodes = append(kindConfig.Nodes, v1alpha4.Node{
-			Role:  v1alpha4.ControlPlaneRole,
-			Image: kc.Config.Image,
+			Role:        v1alpha4.ControlPlaneRole,
+			Image:       kc.Config.Image,
+			ExtraMounts: mounts,
 		})
 
 		// Add worker nodes (NodeCount - 1 since we already have control plane)
 		for i := 1; i < kc.Config.Nodes; i++ {
 			kindConfig.Nodes = append(kindConfig.Nodes, v1alpha4.Node{
-				Role:  v1alpha4.WorkerRole,
-				Image: kc.Config.Image,
+				Role:        v1alpha4.WorkerRole,
+				Image:       kc.Config.Image,
+				ExtraMounts: mounts,
 			})
 		}
 
