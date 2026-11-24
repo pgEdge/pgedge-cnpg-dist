@@ -9,11 +9,17 @@ on:
       ref:
         description: "Git tag or branch from cloudnative-pg/plugin-barman-cloud"
         required: true
-        default: "v0.7.0"
+        default: "v0.16.0"
       version:
-        description: "Version tag (e.g., 0.7.0)"
+        description: "Plugin version plus build number, without the leading v (e.g., 0.16.0-1); images are tagged v<version>"
         required: true
-        default: "0.7.0"
+        default: "0.16.0-1"
+
+# One run at a time per version: every sidecar name pushes the same plugin image, so two
+# dispatches must not both pass the tag check below and then overwrite each other's push.
+concurrency:
+  group: build-barman-${{ inputs.version }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -75,6 +81,38 @@ jobs:
           echo "GO_VERSION=${GO_VERSION}" >> $GITHUB_ENV
           echo "ℹ️ Using GO_VERSION=${GO_VERSION} for builder base image"
 
+      # Images are immutable: every rebuild of a plugin version gets the next build number
+      # (v0.16.0-1, v0.16.0-2, ...) and an existing tag is never overwritten.
+      - name: Check image tags
+        env:
+          INPUT_REF: ${{ inputs.ref }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
+            echo "::error::version must be <plugin version>-<build number>, e.g. 0.16.0-1 (got '$VERSION')"
+            exit 1
+          fi
+          # A release tag must match the version being published (v0.16.0 -> 0.16.0-N).
+          tag="${INPUT_REF#refs/tags/}"
+          if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ "${VERSION%-*}" != "${tag#v}" ]]; then
+            echo "::error::ref $INPUT_REF does not match version $VERSION"
+            exit 1
+          fi
+          images=("$PLUGIN_IMAGE" "$SIDECAR_IMAGE")
+          # Builds before v0.11.0 also publish the base image.
+          if [ -f containers/Dockerfile.barmanbase ]; then
+            images+=("$BASE_IMAGE")
+          fi
+          for image in "${images[@]}"; do
+            ref="${image}:v${VERSION}"
+            if out=$(docker buildx imagetools inspect "$ref" 2>&1); then
+              echo "::error::$ref already exists; use the next build number"
+              exit 1
+            elif [[ "$(tail -n 1 <<<"$out")" != "ERROR: $ref: not found" ]]; then
+              echo "::error::Could not confirm that $ref does not exist: $out"
+              exit 1
+            fi
+          done
+
       # -------------------------------
       # Check if base image Dockerfile exists (removed in v0.11.0+)
       # -------------------------------
@@ -103,10 +141,10 @@ jobs:
               echo "::error::Expected 'FROM ... golang ... AS gobuilder' not found in $f; GOTOOLCHAIN patch cannot be applied. Refusing to build." >&2
               exit 1
             fi
-            sed -i '/^FROM.*golang.*AS gobuilder/a ENV GOTOOLCHAIN=go1.26.5+auto' "$f"
+            sed -i '/^FROM.*golang.*AS gobuilder/a ENV GOTOOLCHAIN=go1.26.11+auto' "$f"
             # Verify the patch actually landed before proceeding.
-            if ! grep -qF 'ENV GOTOOLCHAIN=go1.26.5+auto' "$f"; then
-              echo "::error::Failed to inject 'ENV GOTOOLCHAIN=go1.26.5+auto' into $f." >&2
+            if ! grep -qF 'ENV GOTOOLCHAIN=go1.26.11+auto' "$f"; then
+              echo "::error::Failed to inject 'ENV GOTOOLCHAIN=go1.26.11+auto' into $f." >&2
               exit 1
             fi
             echo "✅ Patched $f"

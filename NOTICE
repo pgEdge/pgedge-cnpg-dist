@@ -25,6 +25,19 @@ Barman Cloud Plugin
   Copyright: Contributors to CloudNativePG, established as CloudNativePG
              a Series of LF Projects, LLC.
 
+Barman (bundled in the Barman Cloud Plugin sidecar image)
+  Source: https://github.com/EnterpriseDB/barman
+  License: GNU General Public License v3.0 (GPL-3.0-only)
+  Copyright: EnterpriseDB UK Limited
+  The version is the one pinned by upstream plugin-barman-cloud for each release.
+
+Base image packages
+  The container images also include operating system packages from their base
+  images (Debian, Red Hat Universal Base Image). These packages keep their own
+  licenses, including GPL and LGPL; their license and copyright notices are
+  shipped inside the images (for example /usr/share/doc/*/copyright on
+  Debian-based images).
+
 Helm Charts
 -----------
 We redistribute CloudNativePG Helm charts with modifications to use
@@ -48,6 +61,8 @@ Location: charts/plugin-barman-cloud/
   Modification: Default image references changed to ghcr.io/pgedge/ registry.
                 Chart README installation instructions point to the pgEdge Helm
                 repository (v0.8.1 and later).
+                Default image tags set to a pgEdge build number, e.g. v0.16.0-1
+                (v0.9.0 and later).
 
 Manifests
 ---------
