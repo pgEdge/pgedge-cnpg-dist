@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -258,6 +260,9 @@ func DeployCNPGOperatorFromManifest(t *testing.T, kubeconfigPath, version, names
 	return deployCNPGOperatorFromManifest(t, kubeconfigPath, version, namespace, "")
 }
 
+// operatorImageRef matches the operator image references in a pgEdge CNPG manifest.
+var operatorImageRef = regexp.MustCompile(`ghcr\.io/pgedge/cloudnative-pg:[^\s"]+`)
+
 // DeployCNPGOperatorFromManifestWithPostgresImage deploys CNPG operator from the static manifest
 // and sets POSTGRES_IMAGE_NAME in the operator config, matching what the Helm install does via
 // config.data.POSTGRES_IMAGE_NAME. Used for operator versions with no matching upstream chart.
@@ -313,6 +318,18 @@ data:
 `, namespace, postgresImage)
 		require.NoError(t, k8s.KubectlApplyFromStringE(t, kubectlOptions, configMap), "Failed to create operator config map")
 		t.Logf("Set POSTGRES_IMAGE_NAME=%s in operator config", postgresImage)
+	}
+
+	// CNPG_OPERATOR_IMAGE (set by CI on pull requests) replaces the manifest's operator image.
+	// The image is preloaded into the cluster, so it must not be pulled again.
+	if img := os.Getenv("CNPG_OPERATOR_IMAGE"); img != "" {
+		content, err := os.ReadFile(manifestPath)
+		require.NoError(t, err, "Failed to read manifest")
+		patched := operatorImageRef.ReplaceAllLiteralString(string(content), img)
+		patched = strings.ReplaceAll(patched, "imagePullPolicy: Always", "imagePullPolicy: IfNotPresent")
+		manifestPath = filepath.Join(t.TempDir(), filepath.Base(manifestPath))
+		require.NoError(t, os.WriteFile(manifestPath, []byte(patched), 0o600), "Failed to write patched manifest")
+		t.Logf("Using operator image %s from CNPG_OPERATOR_IMAGE", img)
 	}
 
 	// Apply the manifest using server-side apply to avoid annotation size limit on large CRDs

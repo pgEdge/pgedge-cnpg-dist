@@ -3,6 +3,7 @@ package providers
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -136,6 +137,15 @@ func (kc *kindCluster) Create(t *testing.T) error {
 	}
 
 	t.Logf("Kind cluster %s created successfully", kc.Name)
+
+	// KIND_LOAD_IMAGES (set by CI on pull requests) lists images that are pulled on the host,
+	// for example private internal images, and loaded into the cluster nodes.
+	for _, img := range strings.Fields(strings.ReplaceAll(os.Getenv("KIND_LOAD_IMAGES"), ",", " ")) {
+		t.Logf("Loading image %s into Kind cluster %s", img, kc.Name)
+		if out, err := exec.Command("kind", "load", "docker-image", img, "--name", kc.Name).CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to load image %s into Kind cluster: %w: %s", img, err, out)
+		}
+	}
 	return nil
 }
 
